@@ -44,7 +44,7 @@ function NotebookRow({ notebook }) {
 export default function RecentNotebooks() {
   return (
     <div className="space-y-6">
-      <h3 className="text-[11px] tracking-[0.2em] font-bold font-mono text-on-surface-variant uppercase border-b border-[rgba(133,148,139,0.2)] pb-4">
+      <h3 className="text-[11px] tracking-[0.2em] font-bold font-mono text-on-surface-variant uppercase border-b border-outline/20 pb-4">
         Recent Notebooks
       </h3>
       <div className="space-y-2">

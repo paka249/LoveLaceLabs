@@ -46,7 +46,7 @@ function NavItem({ icon, img, label, active = false, open }) {
 export default function Sidebar({ open, onToggle }) {
   return (
     <aside
-      className="fixed left-0 top-0 h-screen bg-surface-container border-r border-[rgba(133,148,139,0.2)] backdrop-blur-md flex flex-col py-6 z-50 overflow-hidden transition-all duration-300"
+      className="fixed left-0 top-0 h-screen bg-surface-container border-r border-outline/20 backdrop-blur-md flex flex-col py-6 z-50 overflow-hidden transition-all duration-300"
       style={{ width: open ? '208px' : '64px' }}
     >
       {/* Brand + toggle */}
