@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <!-- d numerator -->
+  <text x="400" y="345" text-anchor="middle" dominant-baseline="middle"
+        font-family="Georgia, 'Times New Roman', serif" font-size="290" font-weight="bold"
+        fill="#5af0b3">d</text>
+  <!-- fraction bar -->
+  <line x1="145" y1="420" x2="655" y2="420" stroke="#5af0b3" stroke-width="58" stroke-linecap="round"/>
+  <!-- dx denominator -->
+  <text x="400" y="610" text-anchor="middle" dominant-baseline="middle"
+        font-family="Georgia, 'Times New Roman', serif" font-size="245" font-weight="bold"
+        fill="#5af0b3">dx</text>
+</svg>

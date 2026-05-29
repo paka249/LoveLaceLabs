@@ -1,18 +1,26 @@
+import bookImg from '../../assets/book.png';
+import settingsImg from '../../assets/settings.png';
+import financeImg from '../../assets/finance.svg';
+import graphImg from '../../assets/graph.svg';
+import calcIcon from '../../assets/icon-calculator.svg';
+import calculusIcon from '../../assets/icon-calculus.svg';
+import linearIcon from '../../assets/icon-linear.svg';
+import statsIcon from '../../assets/icon-stats.svg';
+import helpIcon from '../../assets/icon-help.svg';
+
+const LOGO = '/favicon.jpeg';
+
 const NAV_WORKSPACE = [
-  { icon: 'terminal', label: 'Workspace', active: true },
-  { icon: 'function', label: 'Calculus' },
-  { icon: 'grid_view', label: 'Linear Algebra' },
-  { icon: 'bar_chart', label: 'Statistics' },
-  { icon: 'menu_book', label: 'Library' },
+  { img: calcIcon, label: 'Calculator', active: true },
+  { img: calculusIcon, label: 'Calculus' },
+  { img: linearIcon, label: 'Linear Algebra' },
+  { img: statsIcon, label: 'Statistics' },
+  { img: bookImg, label: 'Library' },
+  { img: financeImg, label: 'Finance' },
+  { img: graphImg, label: 'Graph' },
 ];
 
-const NAV_ENGINES = [
-  { icon: 'monitoring', label: 'Calculus Lab' },
-  { icon: 'layers', label: 'Matrix Engine' },
-  { icon: 'account_balance', label: 'Financial Analysis' },
-];
-
-function NavItem({ icon, label, active = false }) {
+function NavItem({ icon, img, label, active = false, open }) {
   const base =
     'flex items-center gap-3 px-3 py-2 transition-all duration-200 cursor-pointer text-[11px] tracking-[0.05em] font-bold uppercase font-mono';
   const activeClass =
@@ -21,66 +29,90 @@ function NavItem({ icon, label, active = false }) {
     'text-on-surface-variant hover:bg-surface-container-high hover:text-primary';
 
   return (
-    <a href="#" className={`${base} ${active ? activeClass : inactiveClass}`}>
-      <span className="material-symbols-outlined text-[20px]">{icon}</span>
-      <span>{label}</span>
+    <a
+      href="#"
+      title={!open ? label : undefined}
+      className={`${base} ${active ? activeClass : inactiveClass} ${!open ? 'justify-center' : ''}`}
+    >
+      {img
+        ? <img src={img} alt={label} className="w-5 h-5 object-contain opacity-80 shrink-0" />
+        : <span className="material-symbols-outlined text-[20px] shrink-0">{icon}</span>
+      }
+      {open && <span>{label}</span>}
     </a>
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ open, onToggle }) {
   return (
-    <aside className="fixed left-0 top-0 h-screen w-[208px] bg-surface-container border-r border-[rgba(133,148,139,0.2)] backdrop-blur-md flex flex-col py-6 px-4 z-50">
-      {/* Brand */}
-      <div className="mb-10">
-        <h1 className="text-[20px] font-bold text-primary tracking-tighter leading-tight">
-          LovelaceLabs
-        </h1>
-        <p className="text-[9px] tracking-[0.05em] font-bold font-mono text-on-surface-variant opacity-60 uppercase mt-0.5">
-          Computational Engine v4.2
-        </p>
+    <aside
+      className="fixed left-0 top-0 h-screen bg-surface-container border-r border-[rgba(133,148,139,0.2)] backdrop-blur-md flex flex-col py-6 z-50 overflow-hidden transition-all duration-300"
+      style={{ width: open ? '208px' : '64px' }}
+    >
+      {/* Brand + toggle */}
+      <div className={`mb-10 flex items-center ${open ? 'gap-3 px-4' : 'justify-center px-2'}`}>
+        <img src={LOGO} alt="LovelaceLabs logo" className="w-8 h-8 rounded-md object-cover shrink-0" />
+        {open && (
+          <h1 className="text-[20px] font-bold text-primary tracking-tighter leading-tight whitespace-nowrap">
+            LovelaceLabs
+          </h1>
+        )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-grow space-y-4">
+      <nav className="flex-grow space-y-4 overflow-y-auto overflow-x-hidden">
         <div className="space-y-1">
-          <p className="px-2 pb-2 text-[11px] tracking-[0.05em] font-bold font-mono text-on-surface-variant opacity-40 uppercase">
-            Workspace
-          </p>
+          {open && (
+            <p className="px-4 pb-2 text-[11px] tracking-[0.05em] font-bold font-mono text-on-surface-variant opacity-40 uppercase">
+              Workspace
+            </p>
+          )}
           {NAV_WORKSPACE.map((item) => (
-            <NavItem key={item.label} {...item} />
-          ))}
-        </div>
-
-        <div className="pt-6 space-y-1 border-t border-[rgba(133,148,139,0.2)]">
-          <p className="px-2 pb-2 text-[11px] tracking-[0.05em] font-bold font-mono text-on-surface-variant opacity-40 uppercase">
-            Engines
-          </p>
-          {NAV_ENGINES.map((item) => (
-            <NavItem key={item.label} {...item} />
+            <NavItem key={item.label} {...item} open={open} />
           ))}
         </div>
       </nav>
 
       {/* Bottom actions */}
       <div className="mt-auto space-y-1">
-        <button className="w-full mb-4 py-2 bg-primary-container text-on-primary text-[11px] tracking-[0.05em] font-bold font-mono rounded-sm hover:brightness-110 transition-all cursor-pointer">
-          NEW NOTEBOOK
+        <a
+          href="#"
+          title={!open ? 'Settings' : undefined}
+          className={`flex items-center gap-3 py-2 text-on-surface-variant hover:text-primary transition-colors text-[11px] tracking-[0.05em] font-bold font-mono uppercase ${open ? 'px-4' : 'justify-center px-2'}`}
+        >
+          <img src={settingsImg} alt="Settings" className="w-5 h-5 object-contain opacity-80 shrink-0" />
+          {open && <span>Settings</span>}
+        </a>
+        <a
+          href="#"
+          title={!open ? 'Support' : undefined}
+          className={`flex items-center gap-3 py-2 text-on-surface-variant hover:text-primary transition-colors text-[11px] tracking-[0.05em] font-bold font-mono uppercase ${open ? 'px-4' : 'justify-center px-2'}`}
+        >
+          <img src={helpIcon} alt="Support" className="w-5 h-5 object-contain opacity-80 shrink-0" />
+          {open && <span>Support</span>}
+        </a>
+
+        {/* Collapse toggle */}
+        <button
+          onClick={onToggle}
+          title={open ? 'Collapse sidebar' : 'Expand sidebar'}
+          className={`w-full flex items-center gap-3 py-2 text-on-surface-variant hover:text-primary transition-colors text-[11px] tracking-[0.05em] font-bold font-mono uppercase cursor-pointer ${open ? 'px-4' : 'justify-center px-2'}`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-5 h-5 shrink-0 transition-transform duration-300"
+            style={{ transform: open ? 'rotate(0deg)' : 'rotate(180deg)' }}
+          >
+            <polyline points="13 5 7 10 13 15" />
+          </svg>
+          {open && <span>Collapse</span>}
         </button>
-        <a
-          href="#"
-          className="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:text-primary transition-colors text-[11px] tracking-[0.05em] font-bold font-mono uppercase"
-        >
-          <span className="material-symbols-outlined text-[20px]">settings</span>
-          <span>Settings</span>
-        </a>
-        <a
-          href="#"
-          className="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:text-primary transition-colors text-[11px] tracking-[0.05em] font-bold font-mono uppercase"
-        >
-          <span className="material-symbols-outlined text-[20px]">help_center</span>
-          <span>Support</span>
-        </a>
       </div>
     </aside>
   );

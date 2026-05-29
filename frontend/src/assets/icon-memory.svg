@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" fill="none">
+  <!-- Chip body -->
+  <rect x="210" y="210" width="380" height="380" rx="48" stroke="#5af0b3" stroke-width="60"/>
+  <!-- Inner die -->
+  <rect x="300" y="300" width="200" height="200" rx="24" stroke="#5af0b3" stroke-width="48"/>
+  <!-- Pins top -->
+  <line x1="320" y1="210" x2="320" y2="110" stroke="#5af0b3" stroke-width="52" stroke-linecap="round"/>
+  <line x1="400" y1="210" x2="400" y2="110" stroke="#5af0b3" stroke-width="52" stroke-linecap="round"/>
+  <line x1="480" y1="210" x2="480" y2="110" stroke="#5af0b3" stroke-width="52" stroke-linecap="round"/>
+  <!-- Pins bottom -->
+  <line x1="320" y1="590" x2="320" y2="690" stroke="#5af0b3" stroke-width="52" stroke-linecap="round"/>
+  <line x1="400" y1="590" x2="400" y2="690" stroke="#5af0b3" stroke-width="52" stroke-linecap="round"/>
+  <line x1="480" y1="590" x2="480" y2="690" stroke="#5af0b3" stroke-width="52" stroke-linecap="round"/>
+  <!-- Pins left -->
+  <line x1="210" y1="320" x2="110" y2="320" stroke="#5af0b3" stroke-width="52" stroke-linecap="round"/>
+  <line x1="210" y1="400" x2="110" y2="400" stroke="#5af0b3" stroke-width="52" stroke-linecap="round"/>
+  <line x1="210" y1="480" x2="110" y2="480" stroke="#5af0b3" stroke-width="52" stroke-linecap="round"/>
+  <!-- Pins right -->
+  <line x1="590" y1="320" x2="690" y2="320" stroke="#5af0b3" stroke-width="52" stroke-linecap="round"/>
+  <line x1="590" y1="400" x2="690" y2="400" stroke="#5af0b3" stroke-width="52" stroke-linecap="round"/>
+  <line x1="590" y1="480" x2="690" y2="480" stroke="#5af0b3" stroke-width="52" stroke-linecap="round"/>
+</svg>
