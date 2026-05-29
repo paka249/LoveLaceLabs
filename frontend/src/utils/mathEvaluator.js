@@ -52,6 +52,14 @@ async function unwrapSymbolicOperand(expr, nerdamerInstance) {
 
 async function evaluateSymbolic(expression, nerdamerInstance) {
   const trimmed = expression.trim();
+  const explicitIntegralMatch = trimmed.match(/^∫\((.*)\)d\(([A-Za-zα-ωΑ-Ω])\)$/s);
+
+  if (explicitIntegralMatch) {
+    const [, innerExpr, variable] = explicitIntegralMatch;
+    const inner = await unwrapSymbolicOperand(innerExpr, nerdamerInstance);
+    const result = nerdamerInstance(`integrate(${inner},${variable})`).toString();
+    return { success: true, result: fromNerdamerExpression(result) };
+  }
 
   if (trimmed.startsWith('∫(') && trimmed.endsWith(')')) {
     const inner = await unwrapSymbolicOperand(trimmed.slice(2, -1), nerdamerInstance);
@@ -59,17 +67,19 @@ async function evaluateSymbolic(expression, nerdamerInstance) {
     return { success: true, result: fromNerdamerExpression(result) };
   }
 
-  if (trimmed.startsWith('d/dx(') && trimmed.endsWith(')')) {
-    const inner = await unwrapSymbolicOperand(trimmed.slice(5, -1), nerdamerInstance);
-    const result = nerdamerInstance(`diff(${inner},x)`).toString();
+  const firstDerivativeMatch = trimmed.match(/^d\/d([A-Za-zα-ωΑ-Ω])\((.*)\)$/s);
+  if (firstDerivativeMatch) {
+    const [, variable, innerExpr] = firstDerivativeMatch;
+    const inner = await unwrapSymbolicOperand(innerExpr, nerdamerInstance);
+    const result = nerdamerInstance(`diff(${inner},${variable})`).toString();
     return { success: true, result: fromNerdamerExpression(result) };
   }
 
-  const nthDerivativeMatch = trimmed.match(/^d\^(\d+)\/dx\^\1\((.*)\)$/s);
+  const nthDerivativeMatch = trimmed.match(/^d\^(\d+)\/d([A-Za-zα-ωΑ-Ω])\^\1\((.*)\)$/s);
   if (nthDerivativeMatch) {
-    const [, order, innerExpr] = nthDerivativeMatch;
+    const [, order, variable, innerExpr] = nthDerivativeMatch;
     const inner = await unwrapSymbolicOperand(innerExpr, nerdamerInstance);
-    const result = nerdamerInstance(`diff(${inner},x,${order})`).toString();
+    const result = nerdamerInstance(`diff(${inner},${variable},${order})`).toString();
     return { success: true, result: fromNerdamerExpression(result) };
   }
 

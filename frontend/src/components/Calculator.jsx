@@ -55,7 +55,7 @@ const SYMBOLS = {
     { display: 'tanh',  insert: 'tanh(' },
   ],
   calc: [
-    { display: '∫',      insert: '∫()', cursorOffset: -1 },
+    { display: '∫',      insert: '∫()d()', cursorOffset: -4 },
     { display: 'd/dx',   insert: 'd/dx()', cursorOffset: -1 },
     { display: 'dⁿ/dxⁿ', insert: 'd^2/dx^2()', cursorOffset: -6 },
     { display: 'lim',    insert: 'lim(' },

@@ -37,6 +37,22 @@ export default function IntelligenceHub() {
     inputRef.current?.focus();
   }
 
+  function inferSymbolicVariable(expression) {
+    const reserved = new Set([
+      'pi', 'e', 'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
+      'sinh', 'cosh', 'tanh', 'asin', 'acos', 'atan', 'ln', 'log',
+      'log10', 'sqrt', 'root', 'lim', 'integrate', 'diff',
+    ]);
+
+    const latinMatches = expression.match(/\b[A-Za-z]+\b/g) ?? [];
+    const greekMatches = expression.match(/[α-ωΑ-Ω]/g) ?? [];
+    const symbols = [...latinMatches, ...greekMatches]
+      .filter((token) => !reserved.has(token.toLowerCase()));
+    const uniqueSymbols = [...new Set(symbols)];
+
+    return uniqueSymbols.length === 1 ? uniqueSymbols[0] : 'x';
+  }
+
   async function compute() {
     if (!query.trim()) return;
 
@@ -46,13 +62,15 @@ export default function IntelligenceHub() {
   async function handleAction(action) {
     if (!query.trim()) return;
 
+    const variable = inferSymbolicVariable(query);
+
     if (action === 'Integral') {
-      applyResult(await evaluate(`∫(${query})`, angleMode));
+      applyResult(await evaluate(`∫(${query})d(${variable})`, angleMode));
       return;
     }
 
     if (action === 'Derivative') {
-      applyResult(await evaluate(`d/dx(${query})`, angleMode));
+      applyResult(await evaluate(`d/d${variable}(${query})`, angleMode));
       return;
     }
 
