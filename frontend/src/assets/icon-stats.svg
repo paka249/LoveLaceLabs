@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <!-- Axes -->
+  <path d="M 150 150 L 150 650 L 750 650" fill="none" stroke="#5af0b3" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Bell Curve -->
+  <path d="M 185 640 C 320 640 350 220 450 220 C 550 220 580 640 715 640" fill="none" stroke="#5af0b3" stroke-width="60" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Dashed Mean Line -->
+  <line x1="450" y1="225" x2="450" y2="650" stroke="#5af0b3" stroke-width="35" stroke-dasharray="70 50" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" fill="none">
+  <!-- Trending up line chart -->
+  <polyline
+    points="100,600 250,420 400,480 550,240 700,140"
+    stroke="#5af0b3"
+    stroke-width="70"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <!-- Arrow head -->
+  <polyline
+    points="560,110 700,140 670,280"
+    stroke="#5af0b3"
+    stroke-width="70"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+</svg>
