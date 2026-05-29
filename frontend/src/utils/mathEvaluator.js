@@ -146,9 +146,25 @@ async function evaluateSymbolic(expression, nerdamerInstance) {
     return { success: true, result: fromNerdamerExpression(result) };
   }
 
+  const firstPartialMatch = trimmed.match(/^∂\/∂([A-Za-zα-ωΑ-Ω])\((.*)\)$/s);
+  if (firstPartialMatch) {
+    const [, variable, innerExpr] = firstPartialMatch;
+    const inner = await unwrapSymbolicOperand(innerExpr, nerdamerInstance);
+    const result = nerdamerInstance(`diff(${inner},${variable})`).toString();
+    return { success: true, result: fromNerdamerExpression(result) };
+  }
+
   const nthDerivativeMatch = trimmed.match(/^d\^(\d+)\/d([A-Za-zα-ωΑ-Ω])\^\1\((.*)\)$/s);
   if (nthDerivativeMatch) {
     const [, order, variable, innerExpr] = nthDerivativeMatch;
+    const inner = await unwrapSymbolicOperand(innerExpr, nerdamerInstance);
+    const result = nerdamerInstance(`diff(${inner},${variable},${order})`).toString();
+    return { success: true, result: fromNerdamerExpression(result) };
+  }
+
+  const nthPartialMatch = trimmed.match(/^∂\^(\d+)\/∂([A-Za-zα-ωΑ-Ω])\^\1\((.*)\)$/s);
+  if (nthPartialMatch) {
+    const [, order, variable, innerExpr] = nthPartialMatch;
     const inner = await unwrapSymbolicOperand(innerExpr, nerdamerInstance);
     const result = nerdamerInstance(`diff(${inner},${variable},${order})`).toString();
     return { success: true, result: fromNerdamerExpression(result) };
