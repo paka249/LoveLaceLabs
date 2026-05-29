@@ -3,6 +3,79 @@
  * Handles parsing Unicode math notation and computing results
  */
 
+let symbolicMathPromise;
+
+export async function preloadSymbolicMath() {
+  if (!symbolicMathPromise) {
+    symbolicMathPromise = import('nerdamer').then(async (nerdamerModule) => {
+      await Promise.all([
+        import('nerdamer/Algebra.js'),
+        import('nerdamer/Calculus.js'),
+      ]);
+
+      return nerdamerModule.default;
+    });
+  }
+
+  return symbolicMathPromise;
+}
+
+function toNerdamerExpression(expr) {
+  return expr
+    .trim()
+    .replace(/\bpi\b/gi, 'pi')
+    .replace(/π/g, 'pi')
+    .replace(/×/g, '*')
+    .replace(/÷/g, '/')
+    .replace(/±/g, '+')
+    .replace(/²/g, '^2')
+    .replace(/³/g, '^3')
+    .replace(/√\(/g, 'sqrt(')
+    .replace(/∛\(/g, 'root(')
+    .replace(/∜\(/g, 'root(')
+    .replace(/log₁₀\(/g, 'log10(')
+    .replace(/\bln\(/g, 'log(')
+    .replace(/sin⁻¹\(/g, 'asin(')
+    .replace(/cos⁻¹\(/g, 'acos(')
+    .replace(/tan⁻¹\(/g, 'atan(');
+}
+
+function fromNerdamerExpression(expr) {
+  return expr.replace(/\bpi\b/g, 'π');
+}
+
+async function unwrapSymbolicOperand(expr, nerdamerInstance) {
+  const inner = expr.trim();
+  const nested = await evaluateSymbolic(inner, nerdamerInstance);
+  return nested?.success ? toNerdamerExpression(String(nested.result)) : toNerdamerExpression(inner);
+}
+
+async function evaluateSymbolic(expression, nerdamerInstance) {
+  const trimmed = expression.trim();
+
+  if (trimmed.startsWith('∫(') && trimmed.endsWith(')')) {
+    const inner = await unwrapSymbolicOperand(trimmed.slice(2, -1), nerdamerInstance);
+    const result = nerdamerInstance(`integrate(${inner},x)`).toString();
+    return { success: true, result: fromNerdamerExpression(result) };
+  }
+
+  if (trimmed.startsWith('d/dx(') && trimmed.endsWith(')')) {
+    const inner = await unwrapSymbolicOperand(trimmed.slice(5, -1), nerdamerInstance);
+    const result = nerdamerInstance(`diff(${inner},x)`).toString();
+    return { success: true, result: fromNerdamerExpression(result) };
+  }
+
+  const nthDerivativeMatch = trimmed.match(/^d\^(\d+)\/dx\^\1\((.*)\)$/s);
+  if (nthDerivativeMatch) {
+    const [, order, innerExpr] = nthDerivativeMatch;
+    const inner = await unwrapSymbolicOperand(innerExpr, nerdamerInstance);
+    const result = nerdamerInstance(`diff(${inner},x,${order})`).toString();
+    return { success: true, result: fromNerdamerExpression(result) };
+  }
+
+  return null;
+}
+
 /**
  * Converts Unicode math notation to JavaScript-evaluable expression
  * @param {string} expr - The mathematical expression
@@ -60,12 +133,18 @@ function parseExpression(expr, angleMode = 'rad') {
  * @param {string} angleMode - 'rad', 'deg', or 'grad' for trig functions
  * @returns {{ success: boolean, result?: number, error?: string }}
  */
-export function evaluate(expression, angleMode = 'rad') {
+export async function evaluate(expression, angleMode = 'rad') {
   if (!expression || !expression.trim()) {
     return { success: false, error: 'Empty expression' };
   }
 
   try {
+    const nerdamerInstance = await preloadSymbolicMath();
+    const symbolic = await evaluateSymbolic(expression, nerdamerInstance);
+    if (symbolic) {
+      return symbolic;
+    }
+
     const parsed = parseExpression(expression, angleMode);
     
     // Security check: prevent access to dangerous properties
@@ -96,9 +175,13 @@ export function evaluate(expression, angleMode = 'rad') {
 }
 
 /**
- * Formats a numeric result for display
+ * Formats a numeric or symbolic result for display
  */
 export function formatResult(num) {
+  if (typeof num === 'string') {
+    return num;
+  }
+
   if (!isFinite(num)) {
     return num === Infinity ? '∞' : num === -Infinity ? '-∞' : 'Error';
   }

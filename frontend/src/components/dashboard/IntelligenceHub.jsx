@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import calcIcon from '../../assets/icon-calculator.svg';
 import arrowIcon from '../../assets/icon-arrow.svg';
 import Calculator from '../Calculator';
-import { evaluate, formatResult } from '../../utils/mathEvaluator';
+import { evaluate, formatResult, preloadSymbolicMath } from '../../utils/mathEvaluator';
 
 export default function IntelligenceHub() {
   const [query, setQuery] = useState('');
@@ -12,21 +12,51 @@ export default function IntelligenceHub() {
   const [error, setError] = useState('');
   const inputRef = useRef(null);
 
-  function compute() {
-    if (!query.trim()) return;
-    
-    const result = evaluate(query, angleMode);
-    
+  useEffect(() => {
+    if (calcOpen) {
+      preloadSymbolicMath().catch(() => {
+        // Ignore preload failures here; evaluation will surface any real error.
+      });
+    }
+  }, [calcOpen]);
+
+  function showError(message) {
+    setError(message);
+    setTimeout(() => setError(''), 3000);
+  }
+
+  function applyResult(result) {
     if (result.success) {
       setQuery(formatResult(result.result));
       setError('');
-    } else {
-      setError(result.error);
-      // Clear error after 3 seconds
-      setTimeout(() => setError(''), 3000);
+      inputRef.current?.focus();
+      return;
     }
-    
+
+    showError(result.error);
     inputRef.current?.focus();
+  }
+
+  async function compute() {
+    if (!query.trim()) return;
+
+    applyResult(await evaluate(query, angleMode));
+  }
+
+  async function handleAction(action) {
+    if (!query.trim()) return;
+
+    if (action === 'Integral') {
+      applyResult(await evaluate(`∫(${query})`, angleMode));
+      return;
+    }
+
+    if (action === 'Derivative') {
+      applyResult(await evaluate(`d/dx(${query})`, angleMode));
+      return;
+    }
+
+    showError(`${action} is not available yet`);
   }
 
   function insertAtCursor(text, cursorOffset = 0) {
@@ -34,7 +64,8 @@ export default function IntelligenceHub() {
     if (!el) { setQuery((v) => v + text); return; }
     const start = el.selectionStart;
     const end   = el.selectionEnd;
-    const next = query.slice(0, start) + text + query.slice(end);
+    const currentValue = el.value;
+    const next = currentValue.slice(0, start) + text + currentValue.slice(end);
     setQuery(next);
     requestAnimationFrame(() => {
       const newPos = start + text.length + cursorOffset;
@@ -61,7 +92,7 @@ export default function IntelligenceHub() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           onInsert={insertAtCursor}
-          onAction={(action) => console.log(action, query)}
+          onAction={handleAction}
           angleMode={angleMode}
           setAngleMode={setAngleMode}
         />
@@ -95,10 +126,14 @@ export default function IntelligenceHub() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && compute()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                void compute();
+              }
+            }}
           />
           <div className="flex items-center gap-2 shrink-0">
-            <button onClick={compute} className="bg-primary p-2 rounded-lg hover:scale-105 active:scale-95 transition-all cursor-pointer">
+            <button onClick={() => void compute()} className="bg-primary p-2 rounded-lg hover:scale-105 active:scale-95 transition-all cursor-pointer">
               <img src={arrowIcon} alt="submit" className="w-5 h-5 object-contain brightness-0" />
             </button>
           </div>
