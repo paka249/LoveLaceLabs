@@ -17,7 +17,7 @@ export default function App() {
       >
         <TopAppBar sidebarOpen={sidebarOpen} />
 
-        <div className="pt-[96px] pb-20 px-6 max-w-[1024px] mx-auto space-y-12">
+        <div className="flex items-center justify-center min-h-screen px-6">
           <IntelligenceHub />
         </div>
       </main>

@@ -6,12 +6,13 @@ export default function IntelligenceHub() {
   const [query, setQuery] = useState('');
 
   return (
-    <section className="max-w-2xl mx-auto space-y-6">
-      <div className="text-center space-y-2">
-        <h2 className="text-[44px] font-bold font-sans tracking-tight leading-[1.1]">
-          Ada's Computer
+    <section className="max-w-2xl w-full mx-auto space-y-8">
+      <div className="text-center space-y-3">
+        <h2 className="text-[52px] font-bold font-sans tracking-tight leading-[1.1] text-on-surface">
+          Ada's{' '}
+          <span className="text-primary">Computer</span>
         </h2>
-        <p className="text-[16px] font-sans text-on-surface-variant">
+        <p className="text-[15px] font-sans text-on-surface-variant leading-relaxed">
           Enter symbolic expressions, natural language queries, or data streams.
         </p>
       </div>
@@ -30,9 +31,7 @@ export default function IntelligenceHub() {
             onChange={(e) => setQuery(e.target.value)}
           />
           <div className="flex items-center gap-2 shrink-0">
-            <span className="px-2 py-1 bg-surface-container-high rounded text-[10px] font-bold font-mono text-on-surface-variant border border-outline/20">
-              ⌘ K
-            </span>
+            
             <button className="bg-primary p-2 rounded-lg hover:scale-105 active:scale-95 transition-all cursor-pointer">
               <img src={arrowIcon} alt="submit" className="w-5 h-5 object-contain brightness-0" />
             </button>
