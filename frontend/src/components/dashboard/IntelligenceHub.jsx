@@ -8,13 +8,14 @@ export default function IntelligenceHub() {
   const [query, setQuery] = useState('');
   const [calcOpen, setCalcOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
+  const [angleMode, setAngleMode] = useState('rad'); // 'rad', 'deg', 'grad'
   const [error, setError] = useState('');
   const inputRef = useRef(null);
 
   function compute() {
     if (!query.trim()) return;
     
-    const result = evaluate(query);
+    const result = evaluate(query, angleMode);
     
     if (result.success) {
       setQuery(formatResult(result.result));
@@ -61,6 +62,8 @@ export default function IntelligenceHub() {
           setActiveTab={setActiveTab}
           onInsert={insertAtCursor}
           onAction={(action) => console.log(action, query)}
+          angleMode={angleMode}
+          setAngleMode={setAngleMode}
         />
       )}
 

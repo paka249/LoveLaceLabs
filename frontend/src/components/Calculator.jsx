@@ -13,10 +13,10 @@ const TABS = [
 const SYMBOLS = {
   basic: [
     { display: 'x²',  insert: '²' },
-    { display: 'xⁿ',  insert: '^()', cursorOffset: -1 },
+    { display: 'xⁿ',  insert: '()^()', cursorOffset: -4 },
     { display: '√x',  insert: '√(' },
     { display: '∛x',  insert: '∛(' },
-    { display: 'ⁿ√x', insert: '^(1/)', cursorOffset: -1 },
+    { display: 'ⁿ√x', insert: '3√()', cursorOffset: -4 },
     { display: 'x/y', insert: '/' },
     { display: 'log', insert: 'log₁₀(' },
     { display: 'ln',  insert: 'ln(' },
@@ -90,7 +90,7 @@ const ACTIONS = ['Simplify', 'Solve for', 'Derivative', 'Integral', 'Limit', 'Fa
  *   onInsert(text)            — called when a symbol is clicked
  *   onAction(action)          — called when an action pill is clicked
  */
-export default function Calculator({ activeTab, setActiveTab, onInsert, onAction }) {
+export default function Calculator({ activeTab, setActiveTab, onInsert, onAction, angleMode, setAngleMode }) {
   return (
     <div className="glass-panel rounded-xl overflow-hidden w-full">
       {/* ── Tabs ── */}
@@ -123,6 +123,28 @@ export default function Calculator({ activeTab, setActiveTab, onInsert, onAction
             </button>
           ))}
         </div>
+        
+        {/* Angle mode selector - only show below trig buttons */}
+        {activeTab === 'trig' && (
+          <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-outline/10">
+            <span className="text-xs text-on-surface/60 font-sans">Angle Mode:</span>
+            <div className="flex gap-1">
+              {['rad', 'deg', 'grad'].map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setAngleMode(mode)}
+                  className={`px-3 py-1 text-xs font-mono rounded transition-all ${
+                    angleMode === mode
+                      ? 'bg-primary text-surface-container-lowest'
+                      : 'bg-surface-container text-on-surface/70 hover:bg-surface-container-high hover:text-primary'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Action pills ── */}
