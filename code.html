@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LovelaceLabs | Computational Engine</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #051424;
+            color: #d4e4fa;
+            font-family: 'Hanken Grotesk', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass-panel {
+            background: rgba(13, 28, 45, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(133, 148, 139, 0.2);
+        }
+        .glass-panel:hover {
+            border-color: #34d399;
+            transform: translateY(-3px);
+            transition: all 0.2s ease-in-out;
+        }
+        .glow-accent {
+            box-shadow: 0 0 15px rgba(52, 211, 153, 0.15);
+        }
+        .compute-input-focus:focus-within {
+            box-shadow: 0 0 20px rgba(52, 211, 153, 0.2);
+            border-color: #5af0b3;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #051424;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1c2b3c;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-primary": "#006c4b",
+                        "on-primary-container": "#00563b",
+                        "on-tertiary-fixed-variant": "#3c475a",
+                        "on-primary": "#003825",
+                        "on-primary-fixed-variant": "#005137",
+                        "surface-container-low": "#0d1c2d",
+                        "error-container": "#93000a",
+                        "surface-bright": "#2c3a4c",
+                        "on-background": "#d4e4fa",
+                        "inverse-surface": "#d4e4fa",
+                        "tertiary": "#ccd7ef",
+                        "surface-container-lowest": "#010f1f",
+                        "surface-dim": "#051424",
+                        "secondary-container": "#3e465c",
+                        "primary-fixed": "#68fcbf",
+                        "error": "#ffb4ab",
+                        "on-surface-variant": "#bbcac0",
+                        "on-secondary": "#283044",
+                        "on-secondary-fixed": "#131b2e",
+                        "outline-subtle": "rgba(133, 148, 139, 0.2)",
+                        "glass-bg": "rgba(13, 28, 45, 0.4)",
+                        "surface-container-high": "#1c2b3c",
+                        "tertiary-fixed-dim": "#bcc7de",
+                        "primary-fixed-dim": "#45dfa4",
+                        "primary": "#5af0b3",
+                        "on-tertiary-fixed": "#111c2d",
+                        "on-surface": "#d4e4fa",
+                        "surface-variant": "#273647",
+                        "secondary": "#bec6e0",
+                        "secondary-fixed-dim": "#bec6e0",
+                        "on-secondary-fixed-variant": "#3e465c",
+                        "surface-container": "#122131",
+                        "on-tertiary-container": "#404b5e",
+                        "background": "#051424",
+                        "surface-tint": "#45dfa4",
+                        "primary-container": "#34d399",
+                        "glow-primary": "rgba(52, 211, 153, 0.15)",
+                        "tertiary-container": "#b0bbd2",
+                        "on-error-container": "#ffdad6",
+                        "secondary-fixed": "#dae2fd",
+                        "surface-container-highest": "#273647",
+                        "on-error": "#690005",
+                        "on-primary-fixed": "#002114",
+                        "on-tertiary": "#263143",
+                        "tertiary-fixed": "#d8e3fb",
+                        "outline": "#85948b",
+                        "on-secondary-container": "#adb5ce",
+                        "inverse-on-surface": "#233143",
+                        "surface": "#051424",
+                        "outline-variant": "#3c4a42"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-max": "1024px",
+                        "section-margin": "5rem",
+                        "gutter": "1.5rem",
+                        "sidebar-width": "208px",
+                        "header-height": "64px",
+                        "stack-gap": "1rem"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "code-input": ["JetBrains Mono"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "label-caps": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["32px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "code-input": ["18px", {"lineHeight": "26px", "fontWeight": "500"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-lg": ["44px", {"lineHeight": "1.1", "fontWeight": "700"}],
+                        "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface min-h-screen">
+<!-- Persistent SideNavBar -->
+<aside class="fixed left-0 top-0 h-screen w-sidebar-width bg-surface-container border-r border-outline-subtle backdrop-blur-md flex flex-col py-6 px-4 z-50">
+<div class="mb-10">
+<h1 class="text-headline-md font-headline-md font-bold text-primary tracking-tighter">LovelaceLabs</h1>
+<p class="text-[9px] font-label-caps text-on-surface-variant opacity-60">Computational Engine v4.2</p>
+</div>
+<nav class="flex-grow space-y-4">
+<div class="space-y-1">
+<p class="px-2 pb-2 text-label-caps text-on-surface-variant opacity-40">WORKSPACE</p>
+<a class="flex items-center gap-3 px-3 py-2 text-primary font-bold bg-glow-primary border-r-2 border-primary translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="terminal">terminal</span>
+<span class="text-label-caps">Workspace</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-label-caps hover:bg-surface-container-high hover:text-primary transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="function">function</span>
+<span class="text-label-caps">Calculus</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-label-caps hover:bg-surface-container-high hover:text-primary transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="grid_view">grid_view</span>
+<span class="text-label-caps">Linear Algebra</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-label-caps hover:bg-surface-container-high hover:text-primary transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="bar_chart">bar_chart</span>
+<span class="text-label-caps">Statistics</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-label-caps hover:bg-surface-container-high hover:text-primary transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="menu_book">menu_book</span>
+<span class="text-label-caps">Library</span>
+</a>
+</div>
+<div class="pt-6 space-y-1 border-t border-outline-subtle">
+<p class="px-2 pb-2 text-label-caps text-on-surface-variant opacity-40">ENGINES</p>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-label-caps hover:bg-surface-container-high hover:text-primary transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="monitoring">monitoring</span>
+<span class="text-label-caps uppercase">Calculus Lab</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-label-caps hover:bg-surface-container-high hover:text-primary transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="layers">layers</span>
+<span class="text-label-caps uppercase">Matrix Engine</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-label-caps hover:bg-surface-container-high hover:text-primary transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="account_balance">account_balance</span>
+<span class="text-label-caps uppercase">Financial Analysis</span>
+</a>
+</div>
+</nav>
+<div class="mt-auto space-y-1">
+<button class="w-full mb-4 py-2 bg-primary-container text-on-primary font-label-caps rounded-sm hover:brightness-110 transition-all">
+                NEW NOTEBOOK
+            </button>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-label-caps hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+<span class="text-label-caps">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-label-caps hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="help_center">help_center</span>
+<span class="text-label-caps">Support</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-sidebar-width min-h-screen" style="background-image: linear-gradient(rgba(52, 211, 153, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(52, 211, 153, 0.08) 1px, transparent 1px); background-size: 50px 50px; background-position: center center;">
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-208px)] h-header-height z-40 bg-glass-bg border-b border-outline-subtle backdrop-blur-xl flex justify-between items-center px-gutter">
+<div class="flex items-center gap-4">
+<div class="w-2 h-2 rounded-full bg-primary glow-accent"></div>
+<span class="text-label-caps text-on-surface-variant">NODE: US-EAST-INTEL-01</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4 text-on-surface-variant">
+<span class="material-symbols-outlined hover:text-primary cursor-pointer transition-all active:scale-90" data-icon="memory">memory</span>
+<span class="material-symbols-outlined hover:text-primary cursor-pointer transition-all active:scale-90" data-icon="cloud_done">cloud_done</span>
+<span class="material-symbols-outlined hover:text-primary cursor-pointer transition-all active:scale-90" data-icon="notifications">notifications</span>
+</div>
+<button class="px-4 py-1.5 bg-primary-container text-on-primary font-label-caps text-[10px] rounded-sm hover:scale-95 duration-100 active:scale-90">
+                    RUN COMPUTE
+                </button>
+<div class="w-8 h-8 rounded-full border border-outline-subtle overflow-hidden">
+<img alt="Researcher Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a data scientist in a modern, dark-toned studio setting with subtle emerald green rim lighting. The style is high-end corporate photography, focusing on a confident and expert expression. The background is a blurred digital workspace with soft bokeh of glowing algorithm data streams, maintaining the dark-mode aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRop6-bmiXTEonFPf9g7EQN4NNAPqcx4--h_UU2ElO0Bf8qJsYKIH2h_dY_SctLGjU-eAk3z27vw0Yj_nuJm4dJ8AD5KfXcY038t88oaba6X6Eu9uJ1UQ8MfkcOIvqLKVjG3P8Z7EmUg3_f5k05ALFXfjRa2-Wtq2S74hjqZRhGoihZ08PVDzEyQm86h-jJP8Mcf-QUizC_npiqkK6CBK5lTp4ypdx6Ld9E4jvKU__5n4jlgbwfiMmQIkxOnmK5wZKRdGYfzqSlq8"/>
+</div>
+</div>
+</header>
+<!-- Intelligence Hub Content -->
+<div class="pt-[calc(header-height+4rem)] pb-20 px-gutter max-w-container-max mx-auto space-y-12">
+<!-- Global Computational Input -->
+<section class="max-w-2xl mx-auto space-y-6">
+<div class="text-center space-y-2">
+<h2 class="text-headline-lg font-headline-lg tracking-tight">Intelligence Hub</h2>
+<p class="text-body-md text-on-surface-variant">Enter symbolic expressions, natural language queries, or data streams.</p>
+</div>
+<div class="glass-panel p-1 rounded-xl compute-input-focus transition-all duration-300">
+<div class="flex items-center gap-4 px-6 py-4 bg-surface-container-low rounded-lg">
+<span class="material-symbols-outlined text-primary" data-icon="auto_awesome">auto_awesome</span>
+<input class="bg-transparent border-none focus:ring-0 w-full font-code-input text-code-input text-primary placeholder:text-outline-variant" placeholder="integrate log(x)^2 from 0 to 1..." type="text"/>
+<div class="flex items-center gap-2">
+<span class="px-2 py-1 bg-surface-container-high rounded text-[10px] font-label-caps text-on-surface-variant border border-outline-subtle">⌘ K</span>
+<button class="bg-primary p-2 rounded-lg text-on-primary hover:scale-105 active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Launcher & Engines Section (Streamlined) -->
+<section class="space-y-12">
+<!-- Launch Engines Grid -->
+<div class="space-y-6">
+<div class="flex justify-between items-end border-b border-outline-subtle pb-4">
+<div>
+<h3 class="text-label-caps text-on-surface-variant tracking-[0.2em]">LAUNCH ENGINES</h3>
+<p class="text-[10px] text-primary mt-1">AVAILABLE SYSTEMS: 03</p>
+</div>
+<div class="flex gap-2">
+<button class="p-2 border border-outline-subtle rounded-sm text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="filter_list">filter_list</span>
+</button>
+<button class="p-2 border border-outline-subtle rounded-sm text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="grid_view">grid_view</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Calculus Lab Tool -->
+<div class="glass-panel p-6 rounded-xl flex flex-col group cursor-pointer"><div class="flex justify-between items-start mb-6"><div class="w-10 h-10 rounded bg-primary/10 flex items-center justify-center border border-primary/20"><span class="material-symbols-outlined text-primary" data-icon="function">function</span></div></div><h4 class="text-headline-md font-bold mb-3">Calculus Lab</h4><p class="text-body-md text-on-surface-variant mb-6 leading-relaxed">A comprehensive environment for symbolic integration, series expansion, and multivariable differentiation. Designed for precision engineering and advanced mathematical modeling.</p><div class="mt-auto flex items-center justify-between"><span class="text-[9px] font-label-caps text-primary tracking-widest uppercase">Core Engine Module</span><span class="material-symbols-outlined text-on-surface-variant group-hover:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span></div></div>
+<!-- Matrix Engine Tool -->
+<div class="glass-panel p-6 rounded-xl flex flex-col group cursor-pointer">
+<div class="flex justify-between items-start mb-8">
+<div class="w-10 h-10 rounded bg-secondary/10 flex items-center justify-center border border-secondary/20">
+<span class="material-symbols-outlined text-secondary" data-icon="layers">layers</span>
+</div>
+<span class="text-[10px] font-label-caps text-on-surface-variant opacity-40">v3.8.0</span>
+</div>
+<h4 class="text-headline-md font-bold mb-1">Matrix Engine</h4>
+<p class="text-[11px] text-on-surface-variant mb-6 line-clamp-2">High-performance linear algebra and eigenspace decomposition solvers.</p>
+<div class="mt-auto flex items-center justify-between">
+<span class="text-[9px] font-label-caps text-secondary">ALGEBRAIC</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</div>
+</div>
+<!-- Stats Engine Tool -->
+<div class="glass-panel p-6 rounded-xl flex flex-col group cursor-pointer">
+<div class="flex justify-between items-start mb-8">
+<div class="w-10 h-10 rounded bg-primary-container/10 flex items-center justify-center border border-primary-container/20">
+<span class="material-symbols-outlined text-primary-container" data-icon="bar_chart">bar_chart</span>
+</div>
+<span class="text-[10px] font-label-caps text-on-surface-variant opacity-40">v2.1.4</span>
+</div>
+<h4 class="text-headline-md font-bold mb-1">Stats Forge</h4>
+<p class="text-[11px] text-on-surface-variant mb-6 line-clamp-2">Bayesian inference, stochastic modeling, and regression analysis.</p>
+<div class="mt-auto flex items-center justify-between">
+<span class="text-[9px] font-label-caps text-primary-container">ANALYTIC</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Notebooks Row -->
+<div class="space-y-6">
+<h3 class="text-label-caps text-on-surface-variant tracking-[0.2em] border-b border-outline-subtle pb-4">RECENT NOTEBOOKS</h3>
+<div class="space-y-2">
+<div class="flex items-center justify-between p-4 glass-panel rounded hover:bg-surface-container transition-colors group cursor-pointer">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="description">description</span>
+<div>
+<h5 class="text-sm font-semibold">Stochastic_Vol_Model_v2.ipynb</h5>
+<p class="text-[10px] text-on-surface-variant">Last accessed: 2h ago • Finance Core</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex gap-2">
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-[9px] font-label-caps text-on-surface-variant">STOCHASTIC</span>
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-[9px] font-label-caps text-on-surface-variant">PYTHON</span>
+</div>
+<button class="text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-sm" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 glass-panel rounded hover:bg-surface-container transition-colors group cursor-pointer">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="description">description</span>
+<div>
+<h5 class="text-sm font-semibold">PDE_Fluid_Dynamics_Sim.nb</h5>
+<p class="text-[10px] text-on-surface-variant">Last accessed: 14h ago • Physics Engine</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex gap-2">
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-[9px] font-label-caps text-on-surface-variant">CALCULUS</span>
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-[9px] font-label-caps text-on-surface-variant">SIMULATION</span>
+</div>
+<button class="text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-sm" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Calculus Core Engine Preview (Integrated Flow) -->
+<section class="space-y-6 pt-4">
+</section>
+</div>
+</main>
+<script>
+        // Simple micro-interaction for the search bar
+        const searchInput = document.querySelector('input');
+        const container = document.querySelector('.compute-input-focus');
+
+        searchInput.addEventListener('focus', () => {
+            container.classList.add('scale-[1.02]');
+        });
+
+        searchInput.addEventListener('blur', () => {
+            container.classList.remove('scale-[1.02]');
+        });
+
+        // Atmospheric parallax effect for the glass cards
+        document.addEventListener('mousemove', (e) => {
+            const cards = document.querySelectorAll('.glass-panel');
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                if (e.clientX > rect.left && e.clientX < rect.right && e.clientY > rect.top && e.clientY < rect.bottom) {
+                    const moveX = (x - 0.5) * 10;
+                    const moveY = (y - 0.5) * 10;
+                    card.style.transform = `translateY(-3px) perspective(1000px) rotateX(${moveY}deg) rotateY(${moveX}deg)`;
+                } else {
+                    card.style.transform = '';
+                }
+            });
+        });
+    </script>
+</body></html>
