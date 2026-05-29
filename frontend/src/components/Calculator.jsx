@@ -4,7 +4,7 @@
 const TABS = [
   { id: 'basic', label: 'Basic' },
   { id: 'greek', label: 'αβγ' },
-  { id: 'trig',  label: 'sin cos' },
+  { id: 'trig',  label: 'Trig' },
   { id: 'calc',  label: 'Σ ∫ Π' },
   { id: 'rel',   label: '≥ ÷ →' },
 ];
@@ -12,24 +12,28 @@ const TABS = [
 /* ── Symbol sets per tab ── */
 const SYMBOLS = {
   basic: [
-    { display: 'x²',    insert: '^2' },
-    { display: 'xⁿ',    insert: '^' },
-    { display: '√x',    insert: 'sqrt(' },
-    { display: 'ⁿ√x',   insert: 'nthroot(' },
-    { display: 'x/y',   insert: '/' },
-    { display: 'log',   insert: 'log(' },
-    { display: 'ln',    insert: 'ln(' },
-    { display: 'π',     insert: 'pi' },
-    { display: 'θ',     insert: 'theta' },
-    { display: '∞',     insert: 'infinity' },
-    { display: '|x|',   insert: 'abs(' },
-    { display: 'e^x',   insert: 'e^' },
-    { display: '(',     insert: '(' },
-    { display: ')',     insert: ')' },
-    { display: '·',     insert: '*' },
-    { display: '÷',     insert: '/' },
-    { display: '±',     insert: '±' },
-    { display: ',',     insert: ',' },
+    { display: 'x²',  insert: '²' },
+    { display: 'xⁿ',  insert: '^()', cursorOffset: -1 },
+    { display: '√x',  insert: '√(' },
+    { display: '∛x',  insert: '∛(' },
+    { display: 'ⁿ√x', insert: '^(1/)', cursorOffset: -1 },
+    { display: 'x/y', insert: '/' },
+    { display: 'log', insert: 'log₁₀(' },
+    { display: 'ln',  insert: 'ln(' },
+    { display: 'mod', insert: ' % ' },
+    { display: '⌊x⌋', insert: '⌊⌋', cursorOffset: -1 },
+    { display: '⌈x⌉', insert: '⌈⌉', cursorOffset: -1 },
+    { display: 'π',   insert: 'π' },
+    { display: 'e',   insert: 'e' },
+    { display: '∞',   insert: '∞' },
+    { display: '|x|', insert: '||', cursorOffset: -1 },
+    { display: 'e^x', insert: 'e^' },
+    { display: '(',   insert: '(' },
+    { display: ')',   insert: ')' },
+    { display: '×',   insert: '×' },
+    { display: '÷',   insert: '÷' },
+    { display: '±',   insert: '±' },
+    { display: ',',   insert: ',' },
   ],
   greek: [
     'α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ',
@@ -37,17 +41,27 @@ const SYMBOLS = {
     'Α','Β','Γ','Δ','Ε','Ζ','Η','Θ','Λ','Μ','Ξ','Π','Σ','Φ','Ψ','Ω',
   ].map((c) => ({ display: c, insert: c })),
   trig: [
-    'sin','cos','tan','cot','sec','csc',
-    'arcsin','arccos','arctan','sinh','cosh','tanh',
-  ].map((fn) => ({ display: fn, insert: fn + '(' })),
+    { display: 'sin',   insert: 'sin(' },
+    { display: 'cos',   insert: 'cos(' },
+    { display: 'tan',   insert: 'tan(' },
+    { display: 'cot',   insert: 'cot(' },
+    { display: 'sec',   insert: 'sec(' },
+    { display: 'csc',   insert: 'csc(' },
+    { display: 'sin⁻¹', insert: 'sin⁻¹(' },
+    { display: 'cos⁻¹', insert: 'cos⁻¹(' },
+    { display: 'tan⁻¹', insert: 'tan⁻¹(' },
+    { display: 'sinh',  insert: 'sinh(' },
+    { display: 'cosh',  insert: 'cosh(' },
+    { display: 'tanh',  insert: 'tanh(' },
+  ],
   calc: [
-    { display: '∫',      insert: 'integral(' },
-    { display: 'd/dx',   insert: 'diff(' },
-    { display: '∂/∂x',   insert: 'partial(' },
+    { display: '∫',      insert: '∫(' },
+    { display: 'd/dx',   insert: 'd/dx(' },
+    { display: '∂/∂x',   insert: '∂/∂x(' },
     { display: 'lim',    insert: 'lim(' },
-    { display: 'Σ',      insert: 'sum(' },
-    { display: 'Π',      insert: 'prod(' },
-    { display: '∫∫',     insert: 'dintegral(' },
+    { display: 'Σ',      insert: 'Σ(' },
+    { display: 'Π',      insert: 'Π(' },
+    { display: '∫∫',     insert: '∫∫(' },
     { display: 'f\'',    insert: "'" },
     { display: 'f\'\'',  insert: "''" },
   ],
@@ -101,7 +115,7 @@ export default function Calculator({ activeTab, setActiveTab, onInsert, onAction
           {SYMBOLS[activeTab].map((sym, i) => (
             <button
               key={i}
-              onClick={() => onInsert(sym.insert)}
+              onClick={() => onInsert(sym.insert, sym.cursorOffset || 0)}
               className="flex items-center justify-center h-10 rounded-lg bg-surface-container text-on-surface text-[13px] font-mono hover:bg-surface-container-high hover:text-primary border border-outline/10 hover:border-primary/30 transition-all active:scale-95 cursor-pointer"
               title={sym.insert}
             >

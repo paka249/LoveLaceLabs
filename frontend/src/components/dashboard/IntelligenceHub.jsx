@@ -2,21 +2,42 @@ import { useState, useRef } from 'react';
 import calcIcon from '../../assets/icon-calculator.svg';
 import arrowIcon from '../../assets/icon-arrow.svg';
 import Calculator from '../Calculator';
+import { evaluate, formatResult } from '../../utils/mathEvaluator';
 
 export default function IntelligenceHub() {
   const [query, setQuery] = useState('');
   const [calcOpen, setCalcOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
+  const [error, setError] = useState('');
   const inputRef = useRef(null);
 
-  function insertAtCursor(text) {
+  function compute() {
+    if (!query.trim()) return;
+    
+    const result = evaluate(query);
+    
+    if (result.success) {
+      setQuery(formatResult(result.result));
+      setError('');
+    } else {
+      setError(result.error);
+      // Clear error after 3 seconds
+      setTimeout(() => setError(''), 3000);
+    }
+    
+    inputRef.current?.focus();
+  }
+
+  function insertAtCursor(text, cursorOffset = 0) {
     const el = inputRef.current;
     if (!el) { setQuery((v) => v + text); return; }
     const start = el.selectionStart;
     const end   = el.selectionEnd;
-    setQuery(query.slice(0, start) + text + query.slice(end));
+    const next = query.slice(0, start) + text + query.slice(end);
+    setQuery(next);
     requestAnimationFrame(() => {
-      el.setSelectionRange(start + text.length, start + text.length);
+      const newPos = start + text.length + cursorOffset;
+      el.setSelectionRange(newPos, newPos);
       el.focus();
     });
   }
@@ -43,6 +64,15 @@ export default function IntelligenceHub() {
         />
       )}
 
+      {/* Error message */}
+      {error && (
+        <div className="glass-panel p-3 rounded-xl border-2 border-red-500/50 bg-red-500/10">
+          <p className="text-sm font-mono text-red-400 text-center">
+            ⚠️ {error}
+          </p>
+        </div>
+      )}
+
       {/* Input bar */}
       <div className="glass-panel p-1 rounded-xl transition-all duration-300">
         <div className="flex items-center gap-4 px-6 py-4 bg-surface-container-low rounded-lg">
@@ -62,9 +92,10 @@ export default function IntelligenceHub() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && compute()}
           />
           <div className="flex items-center gap-2 shrink-0">
-            <button className="bg-primary p-2 rounded-lg hover:scale-105 active:scale-95 transition-all cursor-pointer">
+            <button onClick={compute} className="bg-primary p-2 rounded-lg hover:scale-105 active:scale-95 transition-all cursor-pointer">
               <img src={arrowIcon} alt="submit" className="w-5 h-5 object-contain brightness-0" />
             </button>
           </div>
