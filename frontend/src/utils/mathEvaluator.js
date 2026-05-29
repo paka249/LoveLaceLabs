@@ -5,6 +5,14 @@
 
 let symbolicMathPromise;
 
+const PROTECTED_SYMBOLIC_IDENTIFIERS = [
+  'log10', 'sinh', 'cosh', 'tanh',
+  'asin', 'acos', 'atan',
+  'sqrt', 'root',
+  'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
+  'log', 'ln', 'pi', 'e',
+];
+
 export async function preloadSymbolicMath() {
   if (!symbolicMathPromise) {
     symbolicMathPromise = import('nerdamer').then(async (nerdamerModule) => {
@@ -20,8 +28,36 @@ export async function preloadSymbolicMath() {
   return symbolicMathPromise;
 }
 
+function normalizeImplicitMultiplication(expr) {
+  let normalized = expr;
+  const placeholders = new Map();
+
+  PROTECTED_SYMBOLIC_IDENTIFIERS.forEach((identifier, index) => {
+    const token = `§${index}§`;
+    const pattern = new RegExp(`\\b${identifier}\\b`, 'gi');
+    normalized = normalized.replace(pattern, (match) => {
+      placeholders.set(token, match);
+      return token;
+    });
+  });
+
+  normalized = normalized
+    .replace(/(\d)([A-Za-zα-ωΑ-Ω(])/g, '$1*$2')
+    .replace(/([A-Za-zα-ωΑ-Ω)])(\d)/g, '$1*$2')
+    .replace(/([A-Za-zα-ωΑ-Ω])([A-Za-zα-ωΑ-Ω])/g, '$1*$2')
+    .replace(/([A-Za-zα-ωΑ-Ω)])(\()/g, '$1*$2')
+    .replace(/(\))([A-Za-zα-ωΑ-Ω])/g, '$1*$2')
+    .replace(/(\))(\()/g, '$1*$2');
+
+  placeholders.forEach((value, token) => {
+    normalized = normalized.replaceAll(token, value);
+  });
+
+  return normalized;
+}
+
 function toNerdamerExpression(expr) {
-  return expr
+  return normalizeImplicitMultiplication(expr
     .trim()
     .replace(/\bpi\b/gi, 'pi')
     .replace(/π/g, 'pi')
@@ -37,21 +73,56 @@ function toNerdamerExpression(expr) {
     .replace(/\bln\(/g, 'log(')
     .replace(/sin⁻¹\(/g, 'asin(')
     .replace(/cos⁻¹\(/g, 'acos(')
-    .replace(/tan⁻¹\(/g, 'atan(');
+    .replace(/tan⁻¹\(/g, 'atan('));
 }
 
 function fromNerdamerExpression(expr) {
   return expr.replace(/\bpi\b/g, 'π');
 }
 
+function findTopLevelEqualsIndex(expr) {
+  let depth = 0;
+
+  for (let index = 0; index < expr.length; index += 1) {
+    const char = expr[index];
+
+    if (char === '(') {
+      depth += 1;
+      continue;
+    }
+
+    if (char === ')') {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+
+    if (char === '=' && depth === 0) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+function normalizeSymbolicInput(expr) {
+  const trimmed = expr.trim();
+  const equalsIndex = findTopLevelEqualsIndex(trimmed);
+
+  if (equalsIndex === -1) {
+    return trimmed;
+  }
+
+  return trimmed.slice(equalsIndex + 1).trim();
+}
+
 async function unwrapSymbolicOperand(expr, nerdamerInstance) {
-  const inner = expr.trim();
+  const inner = normalizeSymbolicInput(expr);
   const nested = await evaluateSymbolic(inner, nerdamerInstance);
   return nested?.success ? toNerdamerExpression(String(nested.result)) : toNerdamerExpression(inner);
 }
 
 async function evaluateSymbolic(expression, nerdamerInstance) {
-  const trimmed = expression.trim();
+  const trimmed = normalizeSymbolicInput(expression);
   const explicitIntegralMatch = trimmed.match(/^∫\((.*)\)d\(([A-Za-zα-ωΑ-Ω])\)$/s);
 
   if (explicitIntegralMatch) {

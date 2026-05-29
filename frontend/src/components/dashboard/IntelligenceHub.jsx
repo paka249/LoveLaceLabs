@@ -37,6 +37,17 @@ export default function IntelligenceHub() {
     inputRef.current?.focus();
   }
 
+  function extractExpressionBody(expression) {
+    const trimmed = expression.trim();
+    const equalsIndex = trimmed.indexOf('=');
+
+    if (equalsIndex === -1) {
+      return trimmed;
+    }
+
+    return trimmed.slice(equalsIndex + 1).trim();
+  }
+
   function inferSymbolicVariable(expression) {
     const reserved = new Set([
       'pi', 'e', 'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
@@ -44,13 +55,18 @@ export default function IntelligenceHub() {
       'log10', 'sqrt', 'root', 'lim', 'integrate', 'diff',
     ]);
 
-    const latinMatches = expression.match(/\b[A-Za-z]+\b/g) ?? [];
-    const greekMatches = expression.match(/[α-ωΑ-Ω]/g) ?? [];
+    const body = extractExpressionBody(expression);
+    const latinMatches = body.match(/\b[A-Za-z]+\b/g) ?? [];
+    const greekMatches = body.match(/[α-ωΑ-Ω]/g) ?? [];
     const symbols = [...latinMatches, ...greekMatches]
       .filter((token) => !reserved.has(token.toLowerCase()));
     const uniqueSymbols = [...new Set(symbols)];
 
-    return uniqueSymbols.length === 1 ? uniqueSymbols[0] : 'x';
+    if (uniqueSymbols.length === 1) {
+      return uniqueSymbols[0];
+    }
+
+    return null;
   }
 
   async function compute() {
@@ -62,15 +78,26 @@ export default function IntelligenceHub() {
   async function handleAction(action) {
     if (!query.trim()) return;
 
+    const expressionBody = extractExpressionBody(query);
     const variable = inferSymbolicVariable(query);
 
     if (action === 'Integral') {
-      applyResult(await evaluate(`∫(${query})d(${variable})`, angleMode));
+      if (!variable) {
+        showError('Multiple variables detected. Use explicit notation like ∫(f)d(x).');
+        return;
+      }
+
+      applyResult(await evaluate(`∫(${expressionBody})d(${variable})`, angleMode));
       return;
     }
 
     if (action === 'Derivative') {
-      applyResult(await evaluate(`d/d${variable}(${query})`, angleMode));
+      if (!variable) {
+        showError('Multiple variables detected. Use explicit notation like d/dx(f).');
+        return;
+      }
+
+      applyResult(await evaluate(`d/d${variable}(${expressionBody})`, angleMode));
       return;
     }
 
