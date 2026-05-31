@@ -9,6 +9,29 @@ const TABS = [
   { id: 'rel',   label: '≥ ÷ →' },
 ];
 
+const LIMIT_DISPLAY = (
+  <span className="inline-flex flex-col items-center leading-none gap-0.5">
+    <span className="text-[10px]">lim</span>
+    <span className="text-[9px] text-on-surface-variant">x→a</span>
+  </span>
+);
+
+const SIGMA_DISPLAY = (
+  <span className="inline-flex flex-col items-center leading-none gap-0.5">
+    <span className="text-[8px] text-on-surface-variant">n</span>
+    <span className="text-[14px]">Σ</span>
+    <span className="text-[8px] text-on-surface-variant">i=1</span>
+  </span>
+);
+
+const PRODUCT_DISPLAY = (
+  <span className="inline-flex flex-col items-center leading-none gap-0.5">
+    <span className="text-[8px] text-on-surface-variant">n</span>
+    <span className="text-[14px]">Π</span>
+    <span className="text-[8px] text-on-surface-variant">i=1</span>
+  </span>
+);
+
 /* ── Symbol sets per tab ── */
 const SYMBOLS = {
   basic: [
@@ -60,11 +83,11 @@ const SYMBOLS = {
     { display: 'dⁿ/dxⁿ', insert: 'd^2/dx^2()', cursorOffset: -6 },
     { display: '∂/∂x',   insert: '∂/∂x()', cursorOffset: -1 },
     { display: '∂ⁿ/∂xⁿ', insert: '∂^2/∂x^2()', cursorOffset: -6 },
-    { display: 'lim',    insert: 'lim(' },
-    { display: 'Σ',      insert: 'Σ(' },
+    { display: LIMIT_DISPLAY,   insert: 'limₓ→ₐ()', cursorOffset: -1 },
+    { display: SIGMA_DISPLAY,   insert: '__SIGMA_TEMPLATE__' },
+    { display: PRODUCT_DISPLAY, insert: '__PRODUCT_TEMPLATE__' },
     { display: 'x',      insert: 'x' },
     { display: 'y',      insert: 'y' },
-    { display: 'f\'',    insert: "'" },
   ],
   rel: [
     { display: '≥', insert: '>=' },
@@ -82,8 +105,6 @@ const SYMBOLS = {
   ],
 };
 
-const ACTIONS = ['Simplify', 'Solve for', 'Derivative', 'Integral', 'Limit', 'Factor'];
-
 /**
  * Inline math keyboard panel — no modal, renders in the page flow.
  * Props:
@@ -91,7 +112,7 @@ const ACTIONS = ['Simplify', 'Solve for', 'Derivative', 'Integral', 'Limit', 'Fa
  *   onInsert(text)            — called when a symbol is clicked
  *   onAction(action)          — called when an action pill is clicked
  */
-export default function Calculator({ activeTab, setActiveTab, onInsert, onAction, angleMode, setAngleMode }) {
+export default function Calculator({ activeTab, setActiveTab, onInsert, angleMode, setAngleMode }) {
   return (
     <div className="glass-panel rounded-xl overflow-hidden w-full">
       {/* ── Tabs ── */}
@@ -148,18 +169,6 @@ export default function Calculator({ activeTab, setActiveTab, onInsert, onAction
         )}
       </div>
 
-      {/* ── Action pills ── */}
-      <div className="flex flex-wrap gap-2 px-3 pb-3">
-        {ACTIONS.map((action) => (
-          <button
-            key={action}
-            onClick={() => onAction(action)}
-            className="px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-wide border border-outline/20 text-on-surface-variant hover:border-primary hover:text-primary transition-colors cursor-pointer"
-          >
-            {action}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

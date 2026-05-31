@@ -69,6 +69,8 @@ function toNerdamerExpression(expr) {
     .replace(/√\(/g, 'sqrt(')
     .replace(/∛\(/g, 'root(')
     .replace(/∜\(/g, 'root(')
+    .replace(/\bnthroot\(/g, 'nthroot(')
+    .replace(/\broot\(/g, 'nthroot(')
     .replace(/log₁₀\(/g, 'log10(')
     .replace(/\bln\(/g, 'log(')
     .replace(/sin⁻¹\(/g, 'asin(')
@@ -76,8 +78,19 @@ function toNerdamerExpression(expr) {
     .replace(/tan⁻¹\(/g, 'atan('));
 }
 
+function toPrettyIndexNotation(expr) {
+  return expr
+    .replace(/sum\(([^,]+),k,1,n\)/g, 'Σⁿᵢ₌₁($1)')
+    .replace(/product\(([^,]+),k,1,n\)/g, 'Πⁿᵢ₌₁($1)')
+    .replace(/Σⁿᵢ₌₁\(([^)]*)\)/g, (_match, body) => `Σⁿᵢ₌₁(${body.replace(/\bk\b/g, 'i')})`)
+    .replace(/Πⁿᵢ₌₁\(([^)]*)\)/g, (_match, body) => `Πⁿᵢ₌₁(${body.replace(/\bk\b/g, 'i')})`)
+    .replace(/Σ\(i=1→n\)\(/g, 'Σⁿᵢ₌₁(')
+    .replace(/Π\(i=1→n\)\(/g, 'Πⁿᵢ₌₁(')
+    .replace(/lim\(x→([^)]+)\)\(/g, 'limₓ→$1(');
+}
+
 function fromNerdamerExpression(expr) {
-  return expr.replace(/\bpi\b/g, 'π');
+  return toPrettyIndexNotation(expr.replace(/\bpi\b/g, 'π'));
 }
 
 function findTopLevelEqualsIndex(expr) {
@@ -113,6 +126,122 @@ function normalizeSymbolicInput(expr) {
   }
 
   return trimmed.slice(equalsIndex + 1).trim();
+}
+
+function normalizePrettyIndexNotation(expr) {
+  return expr
+    .replace(/->/g, '→')
+    .replace(/limₓ→([^\s(]+)\(/g, 'lim(x→$1)(')
+    .replace(/Σⁿᵢ₌₁\(/g, 'Σ(i=1→n)(')
+    .replace(/Πⁿᵢ₌₁\(/g, 'Π(i=1→n)(')
+    .replace(/Σ([A-Za-z0-9]+)i=1\(/g, 'Σ(i=1→$1)(')
+    .replace(/Π([A-Za-z0-9]+)i=1\(/g, 'Π(i=1→$1)(')
+    .replace(/lim\s*x→a\s*\(/g, 'lim(x→a)(')
+    .replace(/Σ\s*i=1→n\s*\(/g, 'Σ(i=1→n)(')
+    .replace(/Π\s*i=1→n\s*\(/g, 'Π(i=1→n)(');
+}
+
+function normalizeVisualSumProductTemplates(expr) {
+  return expr
+    .replace(/([^\n]+)\nΣ\s*([^\n]+)\n([^\n=]+)=([^\n]+)/g, (_match, upper, body, indexVar, lower) => {
+      const up = upper.trim();
+      const b = body.trim();
+      const i = indexVar.trim();
+      const low = lower.trim();
+      if (!up || !b || !i || !low || [up, b, i, low].some((token) => token.includes('□'))) {
+        return _match;
+      }
+      return `Σ(${i}=${low}→${up})(${b})`;
+    })
+    .replace(/([^\n]+)\nΠ\s*([^\n]+)\n([^\n=]+)=([^\n]+)/g, (_match, upper, body, indexVar, lower) => {
+      const up = upper.trim();
+      const b = body.trim();
+      const i = indexVar.trim();
+      const low = lower.trim();
+      if (!up || !b || !i || !low || [up, b, i, low].some((token) => token.includes('□'))) {
+        return _match;
+      }
+      return `Π(${i}=${low}→${up})(${b})`;
+    });
+}
+
+const SUPER_TO_NORMAL = {
+  '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
+  '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
+  '⁺': '+', '⁻': '-', '⁼': '=', '⁽': '(', '⁾': ')',
+  'ᵃ': 'a', 'ᵇ': 'b', 'ᶜ': 'c', 'ᵈ': 'd', 'ᵉ': 'e', 'ᶠ': 'f', 'ᵍ': 'g', 'ʰ': 'h',
+  'ⁱ': 'i', 'ʲ': 'j', 'ᵏ': 'k', 'ˡ': 'l', 'ᵐ': 'm', 'ⁿ': 'n', 'ᵒ': 'o', 'ᵖ': 'p',
+  'ʳ': 'r', 'ˢ': 's', 'ᵗ': 't', 'ᵘ': 'u', 'ᵛ': 'v', 'ʷ': 'w', 'ˣ': 'x', 'ʸ': 'y', 'ᶻ': 'z',
+};
+
+const SUB_TO_NORMAL = {
+  '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4',
+  '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9',
+  '₊': '+', '₋': '-', '₌': '=', '₍': '(', '₎': ')',
+  'ₐ': 'a', 'ₑ': 'e', 'ₕ': 'h', 'ᵢ': 'i', 'ⱼ': 'j', 'ₖ': 'k', 'ₗ': 'l',
+  'ₘ': 'm', 'ₙ': 'n', 'ₒ': 'o', 'ₚ': 'p', 'ᵣ': 'r', 'ₛ': 's', 'ₜ': 't', 'ₓ': 'x',
+};
+
+function isSuperscriptChar(char) {
+  return Object.prototype.hasOwnProperty.call(SUPER_TO_NORMAL, char);
+}
+
+function isSubscriptChar(char) {
+  return Object.prototype.hasOwnProperty.call(SUB_TO_NORMAL, char);
+}
+
+function normalizeUnicodeScripts(expr) {
+  let normalized = '';
+  let index = 0;
+
+  while (index < expr.length) {
+    const char = expr[index];
+
+    if (isSuperscriptChar(char)) {
+      let run = '';
+      while (index < expr.length && isSuperscriptChar(expr[index])) {
+        run += SUPER_TO_NORMAL[expr[index]];
+        index += 1;
+      }
+
+      const previousChar = normalized.at(-1);
+      if (previousChar === 'Σ' || previousChar === 'Π') {
+        normalized += run;
+      } else {
+        normalized += run.length > 1 ? `^(${run})` : `^${run}`;
+      }
+      continue;
+    }
+
+    if (isSubscriptChar(char)) {
+      let run = '';
+      while (index < expr.length && isSubscriptChar(expr[index])) {
+        run += SUB_TO_NORMAL[expr[index]];
+        index += 1;
+      }
+
+      normalized += run;
+      continue;
+    }
+
+    normalized += char;
+    index += 1;
+  }
+
+  return normalized;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function remapIndexSymbol(expr, fromSymbol, toSymbol) {
+  if (fromSymbol === toSymbol) {
+    return expr;
+  }
+
+  const pattern = new RegExp(`\\b${escapeRegExp(fromSymbol)}\\b`, 'g');
+  return expr.replace(pattern, toSymbol);
 }
 
 async function unwrapSymbolicOperand(expr, nerdamerInstance) {
@@ -170,6 +299,39 @@ async function evaluateSymbolic(expression, nerdamerInstance) {
     return { success: true, result: fromNerdamerExpression(result) };
   }
 
+  const limitMatch = trimmed.match(/^lim\(([A-Za-zα-ωΑ-Ω])→([^)]+)\)\((.*)\)$/s);
+  if (limitMatch) {
+    const [, variable, pointExpr, innerExpr] = limitMatch;
+    const inner = await unwrapSymbolicOperand(innerExpr, nerdamerInstance);
+    const point = toNerdamerExpression(pointExpr.trim());
+    const result = nerdamerInstance(`limit(${inner},${variable},${point})`).toString();
+    return { success: true, result: fromNerdamerExpression(result) };
+  }
+
+  const sigmaMatch = trimmed.match(/^Σ\(([A-Za-zα-ωΑ-Ω])=([^→]+)→([^)]+)\)\((.*)\)$/s);
+  if (sigmaMatch) {
+    const [, indexVariable, startExpr, endExpr, innerExpr] = sigmaMatch;
+    const inner = await unwrapSymbolicOperand(innerExpr, nerdamerInstance);
+    const engineIndexVariable = indexVariable === 'i' ? 'k' : indexVariable;
+    const innerForSum = remapIndexSymbol(inner, indexVariable, engineIndexVariable);
+    const start = toNerdamerExpression(startExpr.trim());
+    const end = toNerdamerExpression(endExpr.trim());
+    const result = nerdamerInstance(`sum(${innerForSum},${engineIndexVariable},${start},${end})`).toString();
+    return { success: true, result: fromNerdamerExpression(result) };
+  }
+
+  const productMatch = trimmed.match(/^Π\(([A-Za-zα-ωΑ-Ω])=([^→]+)→([^)]+)\)\((.*)\)$/s);
+  if (productMatch) {
+    const [, indexVariable, startExpr, endExpr, innerExpr] = productMatch;
+    const inner = await unwrapSymbolicOperand(innerExpr, nerdamerInstance);
+    const engineIndexVariable = indexVariable === 'i' ? 'k' : indexVariable;
+    const innerForProduct = remapIndexSymbol(inner, indexVariable, engineIndexVariable);
+    const start = toNerdamerExpression(startExpr.trim());
+    const end = toNerdamerExpression(endExpr.trim());
+    const result = nerdamerInstance(`product(${innerForProduct},${engineIndexVariable},${start},${end})`).toString();
+    return { success: true, result: fromNerdamerExpression(result) };
+  }
+
   return null;
 }
 
@@ -191,6 +353,8 @@ function parseExpression(expr, angleMode = 'rad') {
     .replace(/\be\b/g, 'Math.E')
     // Nth root notation: n√(value) -> Math.pow(value, 1/n)
     .replace(/(\d+)√\(([^)]+)\)/g, 'Math.pow($2,1/$1)')
+    .replace(/\bnthroot\(([^,]+),([^)]+)\)/g, 'Math.pow($1,1/($2))')
+    .replace(/\broot\(([^,]+),([^)]+)\)/g, 'Math.pow($1,1/($2))')
     // Basic functions
     .replace(/√\(/g, 'Math.sqrt(')
     .replace(/∛\(/g, '(x=>Math.pow(x,1/3))(')
@@ -236,13 +400,18 @@ export async function evaluate(expression, angleMode = 'rad') {
   }
 
   try {
+    const normalizedExpression = normalizePrettyIndexNotation(
+      normalizeVisualSumProductTemplates(
+        normalizeUnicodeScripts(normalizePrettyIndexNotation(expression))
+      )
+    );
     const nerdamerInstance = await preloadSymbolicMath();
-    const symbolic = await evaluateSymbolic(expression, nerdamerInstance);
+    const symbolic = await evaluateSymbolic(normalizedExpression, nerdamerInstance);
     if (symbolic) {
       return symbolic;
     }
 
-    const parsed = parseExpression(expression, angleMode);
+    const parsed = parseExpression(normalizedExpression, angleMode);
     
     // Security check: prevent access to dangerous properties
     if (parsed.includes('__proto__') || parsed.includes('constructor') || 
