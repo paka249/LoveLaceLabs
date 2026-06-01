@@ -40,7 +40,7 @@ const SYMBOLS = {
     { display: '√x',  insert: '√(' },
     { display: '∛x',  insert: '∛(' },
     { display: 'ⁿ√x', insert: '3√()', cursorOffset: -4 },
-    { display: 'x/y', insert: '/' },
+    { display: 'x/y', insert: '__FRACTION_TEMPLATE__' },
     { display: 'log', insert: 'log₁₀(' },
     { display: 'ln',  insert: 'ln(' },
     { display: 'mod', insert: ' % ' },

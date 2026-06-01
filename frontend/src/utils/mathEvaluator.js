@@ -165,6 +165,18 @@ function normalizeVisualSumProductTemplates(expr) {
     });
 }
 
+function normalizeLatexFractions(expr) {
+  let normalized = expr;
+  let previous;
+
+  do {
+    previous = normalized;
+    normalized = normalized.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)');
+  } while (normalized !== previous);
+
+  return normalized;
+}
+
 const SUPER_TO_NORMAL = {
   '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
   '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
@@ -402,7 +414,9 @@ export async function evaluate(expression, angleMode = 'rad') {
   try {
     const normalizedExpression = normalizePrettyIndexNotation(
       normalizeVisualSumProductTemplates(
-        normalizeUnicodeScripts(normalizePrettyIndexNotation(expression))
+        normalizeLatexFractions(
+          normalizeUnicodeScripts(normalizePrettyIndexNotation(expression))
+        )
       )
     );
     const nerdamerInstance = await preloadSymbolicMath();
