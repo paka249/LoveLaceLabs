@@ -37,6 +37,23 @@ export function serializeNodeArray(nodes) {
         const variable = serializeNodeArray(node.variable) || 'x';
         return `d/d${variable}(${expr})`;
       }
+      if (node.type === 'derivativeN') {
+        const expr = serializeNodeArray(node.expr);
+        const variable = serializeNodeArray(node.variable) || 'x';
+        const order = serializeNodeArray(node.order) || '2';
+        return `d^${order}/d${variable}^${order}(${expr})`;
+      }
+      if (node.type === 'partial') {
+        const expr = serializeNodeArray(node.expr);
+        const variable = serializeNodeArray(node.variable) || 'x';
+        return `∂/∂${variable}(${expr})`;
+      }
+      if (node.type === 'partialN') {
+        const expr = serializeNodeArray(node.expr);
+        const variable = serializeNodeArray(node.variable) || 'x';
+        const order = serializeNodeArray(node.order) || '2';
+        return `∂^${order}/∂${variable}^${order}(${expr})`;
+      }
       if (node.type === 'trigFunction') {
         const arg = serializeNodeArray(node.arg);
         return `${node.func}(${arg})`;
@@ -61,6 +78,9 @@ function getInitialFocusNodeId(node) {
     return node.upper[0].id;
   }
   if (node.type === 'integral' || node.type === 'derivative') {
+    return node.expr[0].id;
+  }
+  if (node.type === 'derivativeN' || node.type === 'partial' || node.type === 'partialN') {
     return node.expr[0].id;
   }
   if (node.type === 'trigFunction') {
@@ -104,6 +124,32 @@ export function createInitialNode(spec) {
     return {
       type,
       id,
+      expr: [{ type: 'text', value: '', id: generateId() }],
+      variable: [{ type: 'text', value: 'x', id: generateId() }],
+    };
+  }
+  if (type === 'derivativeN') {
+    return {
+      type,
+      id,
+      order: [{ type: 'text', value: '2', id: generateId() }],
+      expr: [{ type: 'text', value: '', id: generateId() }],
+      variable: [{ type: 'text', value: 'x', id: generateId() }],
+    };
+  }
+  if (type === 'partial') {
+    return {
+      type,
+      id,
+      expr: [{ type: 'text', value: '', id: generateId() }],
+      variable: [{ type: 'text', value: 'x', id: generateId() }],
+    };
+  }
+  if (type === 'partialN') {
+    return {
+      type,
+      id,
+      order: [{ type: 'text', value: '2', id: generateId() }],
       expr: [{ type: 'text', value: '', id: generateId() }],
       variable: [{ type: 'text', value: 'x', id: generateId() }],
     };
@@ -194,6 +240,26 @@ export function insertTemplateAtTextNode(nodes, targetId, caretPos, templateType
           return { updatedNodes: newNodes, focusNodeId: res.focusNodeId };
         }
       }
+    } else if (node.type === 'derivativeN' || node.type === 'partialN') {
+      const fields = ['order', 'expr', 'variable'];
+      for (const field of fields) {
+        const res = insertTemplateAtTextNode(node[field], targetId, caretPos, templateType);
+        if (res) {
+          const newNodes = [...nodes];
+          newNodes[i] = { ...node, [field]: res.updatedNodes };
+          return { updatedNodes: newNodes, focusNodeId: res.focusNodeId };
+        }
+      }
+    } else if (node.type === 'partial') {
+      const fields = ['expr', 'variable'];
+      for (const field of fields) {
+        const res = insertTemplateAtTextNode(node[field], targetId, caretPos, templateType);
+        if (res) {
+          const newNodes = [...nodes];
+          newNodes[i] = { ...node, [field]: res.updatedNodes };
+          return { updatedNodes: newNodes, focusNodeId: res.focusNodeId };
+        }
+      }
     } else if (node.type === 'trigFunction') {
       const res = insertTemplateAtTextNode(node.arg, targetId, caretPos, templateType);
       if (res) {
@@ -234,6 +300,18 @@ export function findParentArrayAndIndex(nodes, targetId) {
         if (res) return res;
       }
     } else if (node.type === 'derivative') {
+      const fields = ['expr', 'variable'];
+      for (const field of fields) {
+        const res = findParentArrayAndIndex(node[field], targetId);
+        if (res) return res;
+      }
+    } else if (node.type === 'derivativeN' || node.type === 'partialN') {
+      const fields = ['order', 'expr', 'variable'];
+      for (const field of fields) {
+        const res = findParentArrayAndIndex(node[field], targetId);
+        if (res) return res;
+      }
+    } else if (node.type === 'partial') {
       const fields = ['expr', 'variable'];
       for (const field of fields) {
         const res = findParentArrayAndIndex(node[field], targetId);
@@ -287,6 +365,28 @@ export function findParentTemplateOfArray(nodes, targetId) {
         if (res) return res;
       }
     } else if (node.type === 'derivative') {
+      const fields = ['expr', 'variable'];
+      for (const field of fields) {
+        if (node[field].some((n) => n.id === targetId)) {
+          return { parentTemplate: node, fieldName: field };
+        }
+      }
+      for (const field of fields) {
+        const res = findParentTemplateOfArray(node[field], targetId);
+        if (res) return res;
+      }
+    } else if (node.type === 'derivativeN' || node.type === 'partialN') {
+      const fields = ['order', 'expr', 'variable'];
+      for (const field of fields) {
+        if (node[field].some((n) => n.id === targetId)) {
+          return { parentTemplate: node, fieldName: field };
+        }
+      }
+      for (const field of fields) {
+        const res = findParentTemplateOfArray(node[field], targetId);
+        if (res) return res;
+      }
+    } else if (node.type === 'partial') {
       const fields = ['expr', 'variable'];
       for (const field of fields) {
         if (node[field].some((n) => n.id === targetId)) {
@@ -358,6 +458,7 @@ export function deleteTemplateAtTextNodeStart(tree, targetId) {
     (parentTemplate.type === 'fraction' && fieldName === 'numerator') ||
     ((parentTemplate.type === 'sigma' || parentTemplate.type === 'product') && fieldName === 'upper') ||
     ((parentTemplate.type === 'integral' || parentTemplate.type === 'derivative') && fieldName === 'expr') ||
+    ((parentTemplate.type === 'derivativeN' || parentTemplate.type === 'partial' || parentTemplate.type === 'partialN') && fieldName === 'expr') ||
     (parentTemplate.type === 'trigFunction' && fieldName === 'arg');
 
   if (!isFirstField) {
@@ -440,6 +541,13 @@ export function getFlatTextNodes(nodes) {
           traverse(node.upper);
           traverse(node.lower);
         }
+        traverse(node.expr);
+        traverse(node.variable);
+      } else if (node.type === 'derivativeN' || node.type === 'partialN') {
+        traverse(node.order);
+        traverse(node.expr);
+        traverse(node.variable);
+      } else if (node.type === 'partial') {
         traverse(node.expr);
         traverse(node.variable);
       } else if (node.type === 'trigFunction') {

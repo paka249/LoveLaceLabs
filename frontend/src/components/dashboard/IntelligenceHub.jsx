@@ -114,6 +114,7 @@ export default function IntelligenceHub() {
     if (node.type === 'fraction') return node.numerator[0].id;
     if (node.type === 'sigma' || node.type === 'product') return node.upper[0].id;
     if (node.type === 'integral' || node.type === 'derivative') return node.expr[0].id;
+    if (node.type === 'derivativeN' || node.type === 'partial' || node.type === 'partialN') return node.expr[0].id;
     if (node.type === 'trigFunction') return node.arg[0].id;
     return null;
   }
@@ -283,6 +284,21 @@ export default function IntelligenceHub() {
 
     if (text === '__DERIVATIVE_TEMPLATE__') {
       startTemplate('derivative');
+      return;
+    }
+
+    if (text === '__DERIVATIVE_N_TEMPLATE__') {
+      startTemplate('derivativeN');
+      return;
+    }
+
+    if (text === '__PARTIAL_TEMPLATE__') {
+      startTemplate('partial');
+      return;
+    }
+
+    if (text === '__PARTIAL_N_TEMPLATE__') {
+      startTemplate('partialN');
       return;
     }
 

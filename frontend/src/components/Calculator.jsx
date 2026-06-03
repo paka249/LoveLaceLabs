@@ -80,9 +80,9 @@ const SYMBOLS = {
   calc: [
     { display: '∫',      insert: '__INTEGRAL_TEMPLATE__' },
     { display: 'd/dx',   insert: '__DERIVATIVE_TEMPLATE__' },
-    { display: 'dⁿ/dxⁿ', insert: 'd^2/dx^2()', cursorOffset: -6 },
-    { display: '∂/∂x',   insert: '∂/∂x()', cursorOffset: -1 },
-    { display: '∂ⁿ/∂xⁿ', insert: '∂^2/∂x^2()', cursorOffset: -6 },
+    { display: 'dⁿ/dxⁿ', insert: '__DERIVATIVE_N_TEMPLATE__' },
+    { display: '∂/∂x',   insert: '__PARTIAL_TEMPLATE__' },
+    { display: '∂ⁿ/∂xⁿ', insert: '__PARTIAL_N_TEMPLATE__' },
     { display: LIMIT_DISPLAY,   insert: 'limₓ→ₐ()', cursorOffset: -1 },
     { display: SIGMA_DISPLAY,   insert: '__SIGMA_TEMPLATE__' },
     { display: PRODUCT_DISPLAY, insert: '__PRODUCT_TEMPLATE__' },

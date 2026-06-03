@@ -259,6 +259,196 @@ export default function MathTemplateWidget({
     );
   }
 
+  if (node.type === 'derivativeN') {
+    return (
+      <div className="inline-flex items-center gap-2 align-middle mx-1 p-1.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+        <div className="flex items-center gap-1 font-mono text-primary/80 text-sm select-none">
+          <span>d</span>
+          <MathExpressionField
+            nodes={node.order}
+            onChange={(updated) => onChange({ ...node, order: updated })}
+            activeNodeId={activeNodeId}
+            activeCaret={activeCaret}
+            onFocusNode={onFocusNode}
+            onNavigateLeft={onNavigateLeft}
+            onNavigateRight={onNavigateRight}
+            onNavigateUp={onNavigateUp}
+            onNavigateDown={onNavigateDown}
+            onBackspaceAtStart={onBackspaceAtStart}
+            onSubmit={onSubmit}
+            onStartFraction={onStartFraction}
+            size="xs"
+          />
+          <span>/d</span>
+          <MathExpressionField
+            nodes={node.variable}
+            onChange={(updated) => onChange({ ...node, variable: updated })}
+            activeNodeId={activeNodeId}
+            activeCaret={activeCaret}
+            onFocusNode={onFocusNode}
+            onNavigateLeft={onNavigateLeft}
+            onNavigateRight={onNavigateRight}
+            onNavigateUp={onNavigateUp}
+            onNavigateDown={onNavigateDown}
+            onBackspaceAtStart={onBackspaceAtStart}
+            onSubmit={onSubmit}
+            onStartFraction={onStartFraction}
+            size="xs"
+          />
+          <span>^</span>
+          <MathExpressionField
+            nodes={node.order}
+            onChange={(updated) => onChange({ ...node, order: updated })}
+            activeNodeId={activeNodeId}
+            activeCaret={activeCaret}
+            onFocusNode={onFocusNode}
+            onNavigateLeft={onNavigateLeft}
+            onNavigateRight={onNavigateRight}
+            onNavigateUp={onNavigateUp}
+            onNavigateDown={onNavigateDown}
+            onBackspaceAtStart={onBackspaceAtStart}
+            onSubmit={onSubmit}
+            onStartFraction={onStartFraction}
+            size="xs"
+          />
+        </div>
+        <div className="flex items-center border-l border-primary/20 pl-2 min-h-[44px]">
+          <MathExpressionField
+            nodes={node.expr}
+            onChange={(updated) => onChange({ ...node, expr: updated })}
+            activeNodeId={activeNodeId}
+            activeCaret={activeCaret}
+            onFocusNode={onFocusNode}
+            onNavigateLeft={onNavigateLeft}
+            onNavigateRight={onNavigateRight}
+            onNavigateUp={onNavigateUp}
+            onNavigateDown={onNavigateDown}
+            onBackspaceAtStart={onBackspaceAtStart}
+            onSubmit={onSubmit}
+            onStartFraction={onStartFraction}
+            size={size}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (node.type === 'partial') {
+    return (
+      <div className="inline-flex items-center gap-2 align-middle mx-1 p-1.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+        <div className="flex items-center gap-1 font-mono text-primary/80 text-sm select-none">
+          <span>∂/∂</span>
+          <MathExpressionField
+            nodes={node.variable}
+            onChange={(updated) => onChange({ ...node, variable: updated })}
+            activeNodeId={activeNodeId}
+            activeCaret={activeCaret}
+            onFocusNode={onFocusNode}
+            onNavigateLeft={onNavigateLeft}
+            onNavigateRight={onNavigateRight}
+            onNavigateUp={onNavigateUp}
+            onNavigateDown={onNavigateDown}
+            onBackspaceAtStart={onBackspaceAtStart}
+            onSubmit={onSubmit}
+            onStartFraction={onStartFraction}
+            size="xs"
+          />
+        </div>
+        <div className="flex items-center border-l border-primary/20 pl-2 min-h-[44px]">
+          <MathExpressionField
+            nodes={node.expr}
+            onChange={(updated) => onChange({ ...node, expr: updated })}
+            activeNodeId={activeNodeId}
+            activeCaret={activeCaret}
+            onFocusNode={onFocusNode}
+            onNavigateLeft={onNavigateLeft}
+            onNavigateRight={onNavigateRight}
+            onNavigateUp={onNavigateUp}
+            onNavigateDown={onNavigateDown}
+            onBackspaceAtStart={onBackspaceAtStart}
+            onSubmit={onSubmit}
+            onStartFraction={onStartFraction}
+            size={size}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (node.type === 'partialN') {
+    return (
+      <div className="inline-flex items-center gap-2 align-middle mx-1 p-1.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+        <div className="flex items-center gap-1 font-mono text-primary/80 text-sm select-none">
+          <span>∂</span>
+          <MathExpressionField
+            nodes={node.order}
+            onChange={(updated) => onChange({ ...node, order: updated })}
+            activeNodeId={activeNodeId}
+            activeCaret={activeCaret}
+            onFocusNode={onFocusNode}
+            onNavigateLeft={onNavigateLeft}
+            onNavigateRight={onNavigateRight}
+            onNavigateUp={onNavigateUp}
+            onNavigateDown={onNavigateDown}
+            onBackspaceAtStart={onBackspaceAtStart}
+            onSubmit={onSubmit}
+            onStartFraction={onStartFraction}
+            size="xs"
+          />
+          <span>/∂</span>
+          <MathExpressionField
+            nodes={node.variable}
+            onChange={(updated) => onChange({ ...node, variable: updated })}
+            activeNodeId={activeNodeId}
+            activeCaret={activeCaret}
+            onFocusNode={onFocusNode}
+            onNavigateLeft={onNavigateLeft}
+            onNavigateRight={onNavigateRight}
+            onNavigateUp={onNavigateUp}
+            onNavigateDown={onNavigateDown}
+            onBackspaceAtStart={onBackspaceAtStart}
+            onSubmit={onSubmit}
+            onStartFraction={onStartFraction}
+            size="xs"
+          />
+          <span>^</span>
+          <MathExpressionField
+            nodes={node.order}
+            onChange={(updated) => onChange({ ...node, order: updated })}
+            activeNodeId={activeNodeId}
+            activeCaret={activeCaret}
+            onFocusNode={onFocusNode}
+            onNavigateLeft={onNavigateLeft}
+            onNavigateRight={onNavigateRight}
+            onNavigateUp={onNavigateUp}
+            onNavigateDown={onNavigateDown}
+            onBackspaceAtStart={onBackspaceAtStart}
+            onSubmit={onSubmit}
+            onStartFraction={onStartFraction}
+            size="xs"
+          />
+        </div>
+        <div className="flex items-center border-l border-primary/20 pl-2 min-h-[44px]">
+          <MathExpressionField
+            nodes={node.expr}
+            onChange={(updated) => onChange({ ...node, expr: updated })}
+            activeNodeId={activeNodeId}
+            activeCaret={activeCaret}
+            onFocusNode={onFocusNode}
+            onNavigateLeft={onNavigateLeft}
+            onNavigateRight={onNavigateRight}
+            onNavigateUp={onNavigateUp}
+            onNavigateDown={onNavigateDown}
+            onBackspaceAtStart={onBackspaceAtStart}
+            onSubmit={onSubmit}
+            onStartFraction={onStartFraction}
+            size={size}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (node.type === 'trigFunction') {
     return (
       <div className="inline-flex items-center gap-1.5 align-middle mx-1 p-1.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
