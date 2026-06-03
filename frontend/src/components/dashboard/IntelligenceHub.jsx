@@ -12,7 +12,6 @@ import {
   getFlatTextNodes,
   findParentArrayAndIndex,
   findParentTemplateOfArray,
-  generateId,
 } from '../../utils/mathTree';
 
 const SUPER_MAP = {
@@ -127,11 +126,7 @@ export default function IntelligenceHub() {
     }
 
     const initialNode = createInitialNode(type);
-    const initialTree = [
-      { type: 'text', value: '', id: generateId() },
-      initialNode,
-      { type: 'text', value: '', id: generateId() },
-    ];
+    const initialTree = [initialNode];
     setTemplateFields(initialTree);
 
     let focusNodeId;

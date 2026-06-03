@@ -60,11 +60,17 @@ export function insertTemplateAtTextNode(nodes, targetId, caretPos, templateType
     const rightVal = targetNode.value.slice(caretPos);
     const newTemplate = createInitialNode(templateType);
 
-    const leftNode = { ...targetNode, value: leftVal };
-    const rightNode = { type: 'text', value: rightVal, id: generateId() };
+    const replacements = [];
+    if (leftVal.length > 0) {
+      replacements.push({ ...targetNode, value: leftVal });
+    }
+    replacements.push(newTemplate);
+    if (rightVal.length > 0) {
+      replacements.push({ type: 'text', value: rightVal, id: generateId() });
+    }
 
     const newNodes = [...nodes];
-    newNodes.splice(index, 1, leftNode, newTemplate, rightNode);
+    newNodes.splice(index, 1, ...replacements);
 
     const focusNodeId = templateType === 'fraction'
       ? newTemplate.numerator[0].id
