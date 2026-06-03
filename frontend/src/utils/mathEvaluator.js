@@ -5,10 +5,13 @@
 
 let symbolicMathPromise;
 
+const SYMBOLIC_IDENTIFIER_PATTERN = String.raw`[\p{L}_][\p{L}\p{N}_]*`;
+
 const PROTECTED_SYMBOLIC_IDENTIFIERS = [
   'log10', 'sinh', 'cosh', 'tanh',
   'asin', 'acos', 'atan',
   'sqrt', 'root',
+  'sum', 'product', 'limit', 'diff', 'integrate',
   'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
   'log', 'ln', 'pi', 'e',
 ];
@@ -252,8 +255,27 @@ function remapIndexSymbol(expr, fromSymbol, toSymbol) {
     return expr;
   }
 
-  const pattern = new RegExp(`\\b${escapeRegExp(fromSymbol)}\\b`, 'g');
-  return expr.replace(pattern, toSymbol);
+  const pattern = new RegExp(
+    `(^|[^\\p{L}\\p{N}_])(${escapeRegExp(fromSymbol)})(?=$|[^\\p{L}\\p{N}_])`,
+    'gu',
+  );
+  return expr.replace(pattern, (_match, prefix) => `${prefix}${toSymbol}`);
+}
+
+function nextInternalIndexSymbol(state) {
+  const symbols = ['v', 'w', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'a', 'b', 'c', 'd', 'f', 'g', 'h', 'o', 'y', 'z'];
+  const symbol = symbols[state.counter];
+  if (!symbol) {
+    throw new Error('Nested symbolic operations exceed supported depth');
+  }
+  state.counter += 1;
+  return symbol;
+}
+
+function remapBoundExpression(expr, fromSymbol, toSymbol) {
+  const directlyRemapped = remapIndexSymbol(expr, fromSymbol, toSymbol);
+  const normalizedMultiplication = normalizeImplicitMultiplication(directlyRemapped);
+  return remapIndexSymbol(normalizedMultiplication, fromSymbol, toSymbol);
 }
 
 function findMatchingParenthesis(str, openPos) {
@@ -268,7 +290,7 @@ function findMatchingParenthesis(str, openPos) {
   return -1;
 }
 
-export function translateSymbolicToNerdamer(expr) {
+function translateSymbolicToNerdamerInternal(expr, state) {
   let result = expr;
   let iterations = 0;
   while (iterations++ < 100) {
@@ -276,13 +298,13 @@ export function translateSymbolicToNerdamer(expr) {
     let earliestIndex = Infinity;
 
     const ops = [
-      { name: 'diff', regex: /d\/d([A-Za-zα-ωΑ-Ω])\(/g },
-      { name: 'diffPart', regex: /∂\/∂([A-Za-zα-ωΑ-Ω])\(/g },
-      { name: 'diffN', regex: /d\^(\d+)\/d([A-Za-zα-ωΑ-Ω])\^\1\(/g },
-      { name: 'diffPartN', regex: /∂\^(\d+)\/∂([A-Za-zα-ωΑ-Ω])\^\1\(/g },
-      { name: 'lim', regex: /lim\(([A-Za-zα-ωΑ-Ω])→([^)]+)\)\(/g },
-      { name: 'sum', regex: /Σ\(([A-Za-zα-ωΑ-Ω])=([^→]+)→([^)]+)\)\(/g },
-      { name: 'prod', regex: /Π\(([A-Za-zα-ωΑ-Ω])=([^→]+)→([^)]+)\)\(/g },
+      { name: 'diff', regex: new RegExp(`d\\/d(${SYMBOLIC_IDENTIFIER_PATTERN})\\(`, 'gu') },
+      { name: 'diffPart', regex: new RegExp(`∂\\/∂(${SYMBOLIC_IDENTIFIER_PATTERN})\\(`, 'gu') },
+      { name: 'diffN', regex: new RegExp(`d\\^(\\d+)\\/d(${SYMBOLIC_IDENTIFIER_PATTERN})\\^\\1\\(`, 'gu') },
+      { name: 'diffPartN', regex: new RegExp(`∂\\^(\\d+)\\/∂(${SYMBOLIC_IDENTIFIER_PATTERN})\\^\\1\\(`, 'gu') },
+      { name: 'lim', regex: new RegExp(`lim\\((${SYMBOLIC_IDENTIFIER_PATTERN})→([^)]+)\\)\\(`, 'gu') },
+      { name: 'sum', regex: new RegExp(`Σ\\((${SYMBOLIC_IDENTIFIER_PATTERN})=([^→]+)→([^)]+)\\)\\(`, 'gu') },
+      { name: 'prod', regex: new RegExp(`Π\\((${SYMBOLIC_IDENTIFIER_PATTERN})=([^→]+)→([^)]+)\\)\\(`, 'gu') },
       { name: 'integ', regex: /∫\(/g }
     ];
 
@@ -305,32 +327,38 @@ export function translateSymbolicToNerdamer(expr) {
     if (innerEnd === -1) break; 
 
     const innerExpr = result.slice(innerStart + 1, innerEnd);
+    const translatedInnerExpr = translateSymbolicToNerdamerInternal(innerExpr, state);
     let nerdamerStr = '';
     let suffixRegexLength = 0;
 
     if (op.name === 'diff' || op.name === 'diffPart') {
-      nerdamerStr = `diff(${innerExpr},${match[1]})`;
+      nerdamerStr = `diff(${translatedInnerExpr},${match[1]})`;
     } else if (op.name === 'diffN' || op.name === 'diffPartN') {
-      nerdamerStr = `diff(${innerExpr},${match[2]},${match[1]})`;
+      nerdamerStr = `diff(${translatedInnerExpr},${match[2]},${match[1]})`;
     } else if (op.name === 'lim') {
-      nerdamerStr = `limit(${innerExpr},${match[1]},${match[2]})`;
+      const translatedLimitTarget = translateSymbolicToNerdamerInternal(normalizeSymbolicInput(match[2]), state);
+      nerdamerStr = `limit(${translatedInnerExpr},${match[1]},${translatedLimitTarget})`;
     } else if (op.name === 'sum') {
       const idx = match[1];
-      const engineIdx = idx === 'i' ? 'k' : idx;
-      const remappedInner = remapIndexSymbol(innerExpr, idx, engineIdx);
-      nerdamerStr = `sum(${remappedInner},${engineIdx},${match[2]},${match[3]})`;
+      const engineIdx = nextInternalIndexSymbol(state);
+      const translatedLower = translateSymbolicToNerdamerInternal(normalizeSymbolicInput(match[2]), state);
+      const translatedUpper = translateSymbolicToNerdamerInternal(normalizeSymbolicInput(match[3]), state);
+      const remappedInner = remapBoundExpression(translatedInnerExpr, idx, engineIdx);
+      nerdamerStr = `sum(${remappedInner},${engineIdx},${translatedLower},${translatedUpper})`;
     } else if (op.name === 'prod') {
       const idx = match[1];
-      const engineIdx = idx === 'i' ? 'k' : idx;
-      const remappedInner = remapIndexSymbol(innerExpr, idx, engineIdx);
-      nerdamerStr = `product(${remappedInner},${engineIdx},${match[2]},${match[3]})`;
+      const engineIdx = nextInternalIndexSymbol(state);
+      const translatedLower = translateSymbolicToNerdamerInternal(normalizeSymbolicInput(match[2]), state);
+      const translatedUpper = translateSymbolicToNerdamerInternal(normalizeSymbolicInput(match[3]), state);
+      const remappedInner = remapBoundExpression(translatedInnerExpr, idx, engineIdx);
+      nerdamerStr = `product(${remappedInner},${engineIdx},${translatedLower},${translatedUpper})`;
     } else if (op.name === 'integ') {
       const suffixMatch = /^\)d\(([A-Za-zα-ωΑ-Ω])\)/.exec(result.slice(innerEnd));
       if (suffixMatch) {
-         nerdamerStr = `integrate(${innerExpr},${suffixMatch[1]})`;
+         nerdamerStr = `integrate(${translatedInnerExpr},${suffixMatch[1]})`;
          suffixRegexLength = suffixMatch[0].length - 1; 
       } else {
-         nerdamerStr = `integrate(${innerExpr},x)`;
+         nerdamerStr = `integrate(${translatedInnerExpr},x)`;
       }
     }
 
@@ -342,8 +370,8 @@ export function translateSymbolicToNerdamer(expr) {
   return result;
 }
 
-async function unwrapSymbolicOperand(expr, nerdamerInstance) {
-  return expr; // Legacy wrapper no longer needed but kept for signature matching if anything used it
+export function translateSymbolicToNerdamer(expr) {
+  return translateSymbolicToNerdamerInternal(expr, { counter: 0 });
 }
 
 async function evaluateSymbolic(expression, nerdamerInstance) {
@@ -358,7 +386,7 @@ async function evaluateSymbolic(expression, nerdamerInstance) {
     const finalNerdamerExpr = toNerdamerExpression(translated);
     const result = nerdamerInstance(finalNerdamerExpr).toString();
     return { success: true, result: fromNerdamerExpression(result) };
-  } catch (e) {
+  } catch {
     return null;
   }
 }
