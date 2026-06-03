@@ -2,7 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import calcIcon from '../../assets/icon-calculator.svg';
 import arrowIcon from '../../assets/icon-arrow.svg';
 import Calculator from '../Calculator';
+import MathExpressionField from '../MathExpressionField';
 import { evaluate, formatResult, preloadSymbolicMath } from '../../utils/mathEvaluator';
+import {
+  serializeNodeArray,
+  createInitialNode,
+  insertTemplateAtTextNode,
+  deleteTemplateAtTextNodeStart,
+  getFlatTextNodes,
+  findParentArrayAndIndex,
+  findParentTemplateOfArray,
+  generateId,
+} from '../../utils/mathTree';
 
 const SUPER_MAP = {
   '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
@@ -45,33 +56,19 @@ function formatEditorNotation(value) {
   return formatted;
 }
 
-function buildTemplateExpression(template) {
-  if (!template) {
-    return '';
-  }
-
-  if (template.type === 'fraction') {
-    return `(${template.numerator})/(${template.denominator})`;
-  }
-
-  const { type, upper, expr, index, lower } = template;
-  const symbol = type === 'sigma' ? 'Σ' : 'Π';
-  return `${symbol}(${index}=${lower}→${upper})(${expr})`;
-}
-
 export default function IntelligenceHub() {
   const [query, setQuery] = useState('');
   const [calcOpen, setCalcOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   const [angleMode, setAngleMode] = useState('rad'); // 'rad', 'deg', 'grad'
   const [error, setError] = useState('');
+
+  // Tree state replacing flat templates
   const [templateFields, setTemplateFields] = useState(null);
+  const [activeNodeId, setActiveNodeId] = useState(null);
+  const [activeCaret, setActiveCaret] = useState(null);
+
   const inputRef = useRef(null);
-  const templateUpperRef = useRef(null);
-  const templateLowerRef = useRef(null);
-  const templateExprRef = useRef(null);
-  const templateIndexRef = useRef(null);
-  const templateBoundRef = useRef(null);
   const isTemplateActive = Boolean(templateFields);
 
   useEffect(() => {
@@ -82,14 +79,6 @@ export default function IntelligenceHub() {
     }
   }, [calcOpen]);
 
-  useEffect(() => {
-    if (templateFields) {
-      requestAnimationFrame(() => {
-        templateUpperRef.current?.focus();
-      });
-    }
-  }, [templateFields]);
-
   function showError(message) {
     setError(message);
     setTimeout(() => setError(''), 3000);
@@ -98,6 +87,8 @@ export default function IntelligenceHub() {
   function applyResult(result) {
     if (result.success) {
       setTemplateFields(null);
+      setActiveNodeId(null);
+      setActiveCaret(null);
       setQuery(formatResult(result.result));
       setError('');
       inputRef.current?.focus();
@@ -109,44 +100,56 @@ export default function IntelligenceHub() {
   }
 
   async function compute() {
-    if (!query.trim()) return;
+    if (templateFields) {
+      const expression = serializeNodeArray(templateFields);
+      setQuery(expression);
+      applyResult(await evaluate(expression, angleMode));
+      return;
+    }
 
+    if (!query.trim()) return;
     applyResult(await evaluate(query, angleMode));
   }
 
   function startTemplate(type) {
-    const initial = type === 'fraction'
-      ? {
-        type,
-        numerator: '',
-        denominator: '',
+    if (templateFields) {
+      if (activeNodeId) {
+        const caret = activeCaret ?? 0;
+        const res = insertTemplateAtTextNode(templateFields, activeNodeId, caret, type);
+        if (res) {
+          setTemplateFields(res.updatedNodes);
+          setActiveNodeId(res.focusNodeId);
+          setActiveCaret(0);
+          setQuery(serializeNodeArray(res.updatedNodes));
+        }
       }
-      : {
-        type,
-        upper: '',
-        expr: '',
-        index: 'i',
-        lower: '1',
-      };
+      return;
+    }
 
-    setTemplateFields(initial);
-    setQuery(buildTemplateExpression(initial));
-  }
+    const initialNode = createInitialNode(type);
+    const initialTree = [
+      { type: 'text', value: '', id: generateId() },
+      initialNode,
+      { type: 'text', value: '', id: generateId() },
+    ];
+    setTemplateFields(initialTree);
 
-  function updateTemplateField(field, value) {
-    setTemplateFields((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const next = { ...prev, [field]: formatEditorNotation(value) };
-      setQuery(buildTemplateExpression(next));
-      return next;
-    });
+    let focusNodeId;
+    if (type === 'fraction') {
+      focusNodeId = initialNode.numerator[0].id;
+    } else {
+      focusNodeId = initialNode.upper[0].id;
+    }
+    setActiveNodeId(focusNodeId);
+    setActiveCaret(0);
+    setQuery(serializeNodeArray(initialTree));
   }
 
   function clearTemplate() {
     setTemplateFields(null);
+    setActiveNodeId(null);
+    setActiveCaret(null);
+    setQuery('');
     inputRef.current?.focus();
   }
 
@@ -154,7 +157,107 @@ export default function IntelligenceHub() {
     setQuery('');
     setError('');
     setTemplateFields(null);
+    setActiveNodeId(null);
+    setActiveCaret(null);
     requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
+  function handleFocusNode(nodeId, caret) {
+    setActiveNodeId(nodeId);
+    setActiveCaret(caret);
+  }
+
+  function handleNavigateLeft(nodeId) {
+    const flatTextNodes = getFlatTextNodes(templateFields);
+    const idx = flatTextNodes.findIndex((n) => n.id === nodeId);
+    if (idx > 0) {
+      const prevNode = flatTextNodes[idx - 1];
+      setActiveNodeId(prevNode.id);
+      setActiveCaret(prevNode.value.length);
+    }
+  }
+
+  function handleNavigateRight(nodeId) {
+    const flatTextNodes = getFlatTextNodes(templateFields);
+    const idx = flatTextNodes.findIndex((n) => n.id === nodeId);
+    if (idx !== -1 && idx < flatTextNodes.length - 1) {
+      const nextNode = flatTextNodes[idx + 1];
+      setActiveNodeId(nextNode.id);
+      setActiveCaret(0);
+    }
+  }
+
+  function handleNavigateUp(nodeId, caret) {
+    const parentTemplateRes = findParentTemplateOfArray(templateFields, nodeId);
+    if (!parentTemplateRes) return;
+    const { parentTemplate, fieldName } = parentTemplateRes;
+
+    let targetField = null;
+    if (parentTemplate.type === 'fraction') {
+      if (fieldName === 'denominator') targetField = 'numerator';
+    } else if (parentTemplate.type === 'sigma' || parentTemplate.type === 'product') {
+      if (fieldName === 'lower' || fieldName === 'index' || fieldName === 'expr') {
+        targetField = 'upper';
+      }
+    }
+
+    if (targetField) {
+      const targetNodes = parentTemplate[targetField];
+      const firstTextNode = targetNodes.find((n) => n.type === 'text');
+      if (firstTextNode) {
+        setActiveNodeId(firstTextNode.id);
+        setActiveCaret(Math.min(caret, firstTextNode.value.length));
+      }
+    }
+  }
+
+  function handleNavigateDown(nodeId, caret) {
+    const parentTemplateRes = findParentTemplateOfArray(templateFields, nodeId);
+    if (!parentTemplateRes) return;
+    const { parentTemplate, fieldName } = parentTemplateRes;
+
+    let targetField = null;
+    if (parentTemplate.type === 'fraction') {
+      if (fieldName === 'numerator') targetField = 'denominator';
+    } else if (parentTemplate.type === 'sigma' || parentTemplate.type === 'product') {
+      if (fieldName === 'upper') {
+        targetField = 'lower';
+      }
+    }
+
+    if (targetField) {
+      const targetNodes = parentTemplate[targetField];
+      const firstTextNode = targetNodes.find((n) => n.type === 'text');
+      if (firstTextNode) {
+        setActiveNodeId(firstTextNode.id);
+        setActiveCaret(Math.min(caret, firstTextNode.value.length));
+      }
+    }
+  }
+
+  function handleBackspaceAtStart(nodeId) {
+    const result = deleteTemplateAtTextNodeStart(templateFields, nodeId);
+    if (result) {
+      const flatText = serializeNodeArray(result.updatedNodes);
+      if (flatText === '' && result.updatedNodes.length === 1 && result.updatedNodes[0].value === '') {
+        clearTemplate();
+      } else {
+        setTemplateFields(result.updatedNodes);
+        setActiveNodeId(result.focusNodeId);
+        setActiveCaret(result.focusCaret);
+        setQuery(flatText);
+      }
+    }
+  }
+
+  function handleStartFractionInline(nodeId, caret) {
+    const result = insertTemplateAtTextNode(templateFields, nodeId, caret, 'fraction');
+    if (result) {
+      setTemplateFields(result.updatedNodes);
+      setActiveNodeId(result.focusNodeId);
+      setActiveCaret(0);
+      setQuery(serializeNodeArray(result.updatedNodes));
+    }
   }
 
   function insertAtCursor(text, cursorOffset = 0) {
@@ -173,6 +276,29 @@ export default function IntelligenceHub() {
       return;
     }
 
+    if (templateFields && activeNodeId) {
+      const res = findParentArrayAndIndex(templateFields, activeNodeId);
+      if (res) {
+        const { parentArray, index } = res;
+        const textNode = parentArray[index];
+        const preparedText = formatEditorNotation(text);
+
+        const caret = activeCaret ?? 0;
+        const left = textNode.value.slice(0, caret);
+        const right = textNode.value.slice(caret);
+        const nextValue = left + preparedText + right;
+
+        const newTree = JSON.parse(JSON.stringify(templateFields));
+        const cloneRes = findParentArrayAndIndex(newTree, activeNodeId);
+        cloneRes.parentArray[cloneRes.index].value = nextValue;
+
+        setTemplateFields(newTree);
+        setQuery(serializeNodeArray(newTree));
+        setActiveCaret(caret + preparedText.length + cursorOffset);
+      }
+      return;
+    }
+
     const el = inputRef.current;
     if (!el) {
       setQuery((v) => formatEditorNotation(v + text));
@@ -181,7 +307,7 @@ export default function IntelligenceHub() {
 
     const preparedText = formatEditorNotation(text);
     const start = el.selectionStart;
-    const end   = el.selectionEnd;
+    const end = el.selectionEnd;
     const currentValue = el.value;
     const next = currentValue.slice(0, start) + preparedText + currentValue.slice(end);
     setQuery(next);
@@ -223,9 +349,7 @@ export default function IntelligenceHub() {
       {/* Error message */}
       {error && (
         <div className="glass-panel p-3 rounded-xl border-2 border-red-500/50 bg-red-500/10">
-          <p className="text-sm font-mono text-red-400 text-center">
-            ⚠️ {error}
-          </p>
+          <p className="text-sm font-mono text-red-400 text-center">⚠️ {error}</p>
         </div>
       )}
 
@@ -242,285 +366,41 @@ export default function IntelligenceHub() {
             <img src={calcIcon} alt="calculator" className="w-6 h-6 object-contain" />
           </button>
 
-          {templateFields?.type === 'fraction' && (
-            <div className="shrink-0 flex items-center rounded-md px-1 py-1">
-              <div className="w-[132px]">
-                <input
-                  ref={templateUpperRef}
-                  value={templateFields.numerator}
-                  onChange={(e) => updateTemplateField('numerator', e.target.value)}
-                  onKeyDown={(e) => {
-                    const caret = e.currentTarget.selectionStart ?? 0;
-                    const length = e.currentTarget.value.length;
-
-                    if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      const nextPos = Math.min(caret, templateFields.denominator.length);
-                      templateLowerRef.current?.focus();
-                      templateLowerRef.current?.setSelectionRange(nextPos, nextPos);
-                      return;
-                    }
-
-                    if (e.key === 'ArrowRight' && caret === length) {
-                      e.preventDefault();
-                      templateLowerRef.current?.focus();
-                      templateLowerRef.current?.setSelectionRange(0, 0);
-                      return;
-                    }
-
-                    if (e.key === 'ArrowLeft' && caret === 0) {
-                      e.preventDefault();
-                      inputRef.current?.focus();
-                      return;
-                    }
-
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      void compute();
-                    }
-                  }}
-                  className="h-9 w-full px-2 rounded-md border-2 border-primary/60 bg-surface-container-low/40 text-center text-[20px] font-mono text-primary"
-                  placeholder="num"
-                />
-                <div className="h-[2px] w-full bg-primary/85 rounded-full my-1" />
-                <input
-                  ref={templateLowerRef}
-                  value={templateFields.denominator}
-                  onChange={(e) => updateTemplateField('denominator', e.target.value)}
-                  onKeyDown={(e) => {
-                    const caret = e.currentTarget.selectionStart ?? 0;
-                    const length = e.currentTarget.value.length;
-
-                    if (e.key === 'ArrowUp') {
-                      e.preventDefault();
-                      const nextPos = Math.min(caret, templateFields.numerator.length);
-                      templateUpperRef.current?.focus();
-                      templateUpperRef.current?.setSelectionRange(nextPos, nextPos);
-                      return;
-                    }
-
-                    if (e.key === 'ArrowLeft' && caret === 0) {
-                      e.preventDefault();
-                      templateUpperRef.current?.focus();
-                      templateUpperRef.current?.setSelectionRange(templateFields.numerator.length, templateFields.numerator.length);
-                      return;
-                    }
-
-                    if (e.key === 'ArrowRight' && caret === length) {
-                      e.preventDefault();
-                      inputRef.current?.focus();
-                      return;
-                    }
-
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      void compute();
-                    }
-                  }}
-                  className="h-9 w-full px-2 rounded-md border-2 border-primary/60 bg-surface-container-low/40 text-center text-[20px] font-mono text-primary"
-                  placeholder="den"
-                />
-              </div>
-            </div>
-          )}
-
-          {templateFields && templateFields.type !== 'fraction' && (
-            <div className="shrink-0 flex items-center rounded-md px-1 py-1">
-                <div className="grid grid-cols-[68px_160px] grid-rows-3 gap-x-3 gap-y-1 items-center">
-                <input
-                  ref={templateUpperRef}
-                  value={templateFields.upper}
-                  onChange={(e) => updateTemplateField('upper', e.target.value)}
-                  onKeyDown={(e) => {
-                    const caret = e.currentTarget.selectionStart ?? 0;
-                    const length = e.currentTarget.value.length;
-
-                    if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      const nextPos = Math.min(caret, templateFields.lower.length);
-                      templateBoundRef.current?.focus();
-                      templateBoundRef.current?.setSelectionRange(nextPos, nextPos);
-                      return;
-                    }
-
-                    if (e.key === 'ArrowRight' && caret === length) {
-                      e.preventDefault();
-                      templateExprRef.current?.focus();
-                      templateExprRef.current?.setSelectionRange(0, 0);
-                      return;
-                    }
-
-                    if (e.key === 'ArrowLeft' && caret === 0) {
-                      e.preventDefault();
-                      inputRef.current?.focus();
-                      return;
-                    }
-
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      void compute();
-                    }
-                  }}
-                  className="h-8 px-2 rounded-md border-2 border-primary/60 bg-surface-container-low/40 text-center text-[16px] font-mono text-primary"
-                  placeholder="n"
-                />
-                <div />
-
-                <div className="text-[38px] leading-none text-primary text-center">
-                  {templateFields.type === 'sigma' ? 'Σ' : 'Π'}
-                </div>
-                <input
-                  ref={templateExprRef}
-                  value={templateFields.expr}
-                  onChange={(e) => updateTemplateField('expr', e.target.value)}
-                  onKeyDown={(e) => {
-                    const caret = e.currentTarget.selectionStart ?? 0;
-                    const length = e.currentTarget.value.length;
-
-                    if (e.key === 'ArrowLeft' && caret === 0) {
-                      e.preventDefault();
-                      templateUpperRef.current?.focus();
-                      const pos = templateFields.upper.length;
-                      templateUpperRef.current?.setSelectionRange(pos, pos);
-                      return;
-                    }
-
-                    if (e.key === 'ArrowRight' && caret === length) {
-                      e.preventDefault();
-                      templateIndexRef.current?.focus();
-                      templateIndexRef.current?.setSelectionRange(0, 0);
-                      return;
-                    }
-
-                    if (e.key === 'ArrowUp') {
-                      e.preventDefault();
-                      const nextPos = Math.min(caret, templateFields.upper.length);
-                      templateUpperRef.current?.focus();
-                      templateUpperRef.current?.setSelectionRange(nextPos, nextPos);
-                      return;
-                    }
-
-                    if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      const nextPos = Math.min(caret, templateFields.lower.length);
-                      templateBoundRef.current?.focus();
-                      templateBoundRef.current?.setSelectionRange(nextPos, nextPos);
-                      return;
-                    }
-
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      void compute();
-                    }
-                  }}
-                  className="h-9 px-2 rounded-md border-2 border-primary/60 bg-surface-container-low/40 text-[16px] font-mono text-primary"
-                  placeholder="expression"
-                />
-
-                <div className="inline-flex items-center gap-2 justify-center">
-                  <input
-                    ref={templateIndexRef}
-                    value={templateFields.index}
-                    onChange={(e) => updateTemplateField('index', e.target.value)}
-                    onKeyDown={(e) => {
-                      const caret = e.currentTarget.selectionStart ?? 0;
-                      const length = e.currentTarget.value.length;
-
-                      if (e.key === 'ArrowLeft' && caret === 0) {
-                        e.preventDefault();
-                        templateExprRef.current?.focus();
-                        const pos = templateFields.expr.length;
-                        templateExprRef.current?.setSelectionRange(pos, pos);
-                        return;
-                      }
-
-                      if (e.key === 'ArrowRight' && caret === length) {
-                        e.preventDefault();
-                        templateBoundRef.current?.focus();
-                        templateBoundRef.current?.setSelectionRange(0, 0);
-                        return;
-                      }
-
-                      if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        const nextPos = Math.min(caret, templateFields.upper.length);
-                        templateUpperRef.current?.focus();
-                        templateUpperRef.current?.setSelectionRange(nextPos, nextPos);
-                        return;
-                      }
-
-                      if (e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        const nextPos = Math.min(caret, templateFields.lower.length);
-                        templateBoundRef.current?.focus();
-                        templateBoundRef.current?.setSelectionRange(nextPos, nextPos);
-                        return;
-                      }
-
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        void compute();
-                      }
-                    }}
-                    className="h-8 w-11 px-1 rounded-md border-2 border-primary/60 bg-surface-container-low/40 text-center text-[16px] font-mono text-primary"
-                    placeholder="i"
-                  />
-                  <span className="text-[18px] text-primary">=</span>
-                </div>
-                <div className="inline-flex items-center gap-2 justify-start">
-                  <input
-                    ref={templateBoundRef}
-                    value={templateFields.lower}
-                    onChange={(e) => updateTemplateField('lower', e.target.value)}
-                    onKeyDown={(e) => {
-                      const caret = e.currentTarget.selectionStart ?? 0;
-                      const length = e.currentTarget.value.length;
-
-                      if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        const nextPos = Math.min(caret, templateFields.upper.length);
-                        templateUpperRef.current?.focus();
-                        templateUpperRef.current?.setSelectionRange(nextPos, nextPos);
-                        return;
-                      }
-
-                      if (e.key === 'ArrowLeft' && caret === 0) {
-                        e.preventDefault();
-                        templateIndexRef.current?.focus();
-                        const pos = templateFields.index.length;
-                        templateIndexRef.current?.setSelectionRange(pos, pos);
-                        return;
-                      }
-
-                      if (e.key === 'ArrowRight' && caret === length) {
-                        e.preventDefault();
-                        inputRef.current?.focus();
-                        return;
-                      }
-
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        void compute();
-                      }
-                    }}
-                    className="h-8 w-16 px-2 rounded-md border-2 border-primary/60 bg-surface-container-low/40 text-center text-[16px] font-mono text-primary"
-                    placeholder="1"
-                  />
-                  <button
-                    onClick={clearTemplate}
-                    className="h-8 px-2 rounded-md border border-outline/40 text-on-surface-variant hover:text-primary hover:border-primary/40 transition-colors"
-                    title="Close template"
-                  >
-                    ×
-                  </button>
-                </div>
-                </div>
+          {templateFields && (
+            <div className="flex-1 flex items-center justify-between gap-3">
+              <MathExpressionField
+                nodes={templateFields}
+                onChange={(updated) => {
+                  setTemplateFields(updated);
+                  setQuery(serializeNodeArray(updated));
+                }}
+                activeNodeId={activeNodeId}
+                activeCaret={activeCaret}
+                onFocusNode={handleFocusNode}
+                onNavigateLeft={handleNavigateLeft}
+                onNavigateRight={handleNavigateRight}
+                onNavigateUp={handleNavigateUp}
+                onNavigateDown={handleNavigateDown}
+                onBackspaceAtStart={handleBackspaceAtStart}
+                onSubmit={compute}
+                onStartFraction={handleStartFractionInline}
+                isRoot={true}
+              />
+              <button
+                onClick={clearTemplate}
+                className="h-8 px-2 rounded-md border border-outline/40 text-on-surface-variant hover:text-primary hover:border-primary/40 transition-colors"
+                title="Close template"
+              >
+                ×
+              </button>
             </div>
           )}
 
           <textarea
             ref={inputRef}
-            className="bg-transparent border-none outline-none focus:ring-0 w-full min-h-[84px] resize-none font-mono text-[18px] leading-relaxed text-primary placeholder:text-outline-variant"
+            className={`bg-transparent border-none outline-none focus:ring-0 w-full min-h-[84px] resize-none font-mono text-[18px] leading-relaxed text-primary placeholder:text-outline-variant transition-opacity ${
+              isTemplateActive ? 'opacity-0 pointer-events-none absolute' : 'opacity-100'
+            }`}
             placeholder={isTemplateActive ? '' : 'integrate log(x)^2 from 0 to 1...'}
             value={isTemplateActive ? '' : query}
             onChange={(e) => {
@@ -528,24 +408,6 @@ export default function IntelligenceHub() {
               setQuery(formatEditorNotation(e.target.value));
             }}
             onKeyDown={(e) => {
-              if (templateFields?.type === 'fraction') {
-                if (e.key === 'ArrowLeft' && (e.currentTarget.selectionStart ?? 0) === 0) {
-                  e.preventDefault();
-                  templateLowerRef.current?.focus();
-                  const pos = templateFields.denominator.length;
-                  templateLowerRef.current?.setSelectionRange(pos, pos);
-                  return;
-                }
-              } else if (templateFields?.type === 'sigma' || templateFields?.type === 'product') {
-                if (e.key === 'ArrowLeft' && (e.currentTarget.selectionStart ?? 0) === 0) {
-                  e.preventDefault();
-                  templateBoundRef.current?.focus();
-                  const pos = templateFields.lower.length;
-                  templateBoundRef.current?.setSelectionRange(pos, pos);
-                  return;
-                }
-              }
-
               if (e.key === '/' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 e.preventDefault();
                 startTemplate('fraction');
@@ -566,7 +428,10 @@ export default function IntelligenceHub() {
             >
               clear
             </button>
-            <button onClick={() => void compute()} className="bg-primary p-2 rounded-lg hover:scale-105 active:scale-95 transition-all cursor-pointer">
+            <button
+              onClick={() => void compute()}
+              className="bg-primary p-2 rounded-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            >
               <img src={arrowIcon} alt="submit" className="w-5 h-5 object-contain brightness-0" />
             </button>
           </div>
