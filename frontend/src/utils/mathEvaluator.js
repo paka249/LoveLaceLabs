@@ -11,7 +11,7 @@ const PROTECTED_SYMBOLIC_IDENTIFIERS = [
   'log10', 'sinh', 'cosh', 'tanh',
   'asin', 'acos', 'atan',
   'sqrt', 'root',
-  'sum', 'product', 'limit', 'diff', 'integrate',
+  'sum', 'product', 'limit', 'diff', 'integrate', 'defint',
   'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
   'log', 'ln', 'pi', 'e',
 ];
@@ -305,6 +305,7 @@ function translateSymbolicToNerdamerInternal(expr, state) {
       { name: 'lim', regex: new RegExp(`lim\\((${SYMBOLIC_IDENTIFIER_PATTERN})→([^)]+)\\)\\(`, 'gu') },
       { name: 'sum', regex: new RegExp(`Σ\\((${SYMBOLIC_IDENTIFIER_PATTERN})=([^→]+)→([^)]+)\\)\\(`, 'gu') },
       { name: 'prod', regex: new RegExp(`Π\\((${SYMBOLIC_IDENTIFIER_PATTERN})=([^→]+)→([^)]+)\\)\\(`, 'gu') },
+      { name: 'integDef', regex: /∫\(([^→]+)→([^)]+)\)\(/g },
       { name: 'integ', regex: /∫\(/g }
     ];
 
@@ -352,7 +353,17 @@ function translateSymbolicToNerdamerInternal(expr, state) {
       const translatedUpper = translateSymbolicToNerdamerInternal(normalizeSymbolicInput(match[3]), state);
       const remappedInner = remapBoundExpression(translatedInnerExpr, idx, engineIdx);
       nerdamerStr = `product(${remappedInner},${engineIdx},${translatedLower},${translatedUpper})`;
-    } else if (op.name === 'integ') {
+     } else if (op.name === 'integDef') {
+      const translatedLower = translateSymbolicToNerdamerInternal(normalizeSymbolicInput(match[1]), state);
+      const translatedUpper = translateSymbolicToNerdamerInternal(normalizeSymbolicInput(match[2]), state);
+      const suffixMatch = /^\)d\(([A-Za-zα-ωΑ-Ω][A-Za-z0-9α-ωΑ-Ω_]*)\)/u.exec(result.slice(innerEnd));
+      if (suffixMatch) {
+        nerdamerStr = `defint(${translatedInnerExpr},${translatedLower},${translatedUpper},${suffixMatch[1]})`;
+        suffixRegexLength = suffixMatch[0].length - 1;
+      } else {
+        nerdamerStr = `defint(${translatedInnerExpr},${translatedLower},${translatedUpper},x)`;
+      }
+     } else if (op.name === 'integ') {
       const suffixMatch = /^\)d\(([A-Za-zα-ωΑ-Ω])\)/.exec(result.slice(innerEnd));
       if (suffixMatch) {
          nerdamerStr = `integrate(${translatedInnerExpr},${suffixMatch[1]})`;

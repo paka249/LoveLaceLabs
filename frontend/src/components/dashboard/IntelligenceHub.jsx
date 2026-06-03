@@ -110,11 +110,19 @@ export default function IntelligenceHub() {
     applyResult(await evaluate(query, angleMode));
   }
 
-  function startTemplate(type) {
+  function getTemplateFocusNodeId(node) {
+    if (node.type === 'fraction') return node.numerator[0].id;
+    if (node.type === 'sigma' || node.type === 'product') return node.upper[0].id;
+    if (node.type === 'integral' || node.type === 'derivative') return node.expr[0].id;
+    if (node.type === 'trigFunction') return node.arg[0].id;
+    return null;
+  }
+
+  function startTemplate(templateSpec) {
     if (templateFields) {
       if (activeNodeId) {
         const caret = activeCaret ?? 0;
-        const res = insertTemplateAtTextNode(templateFields, activeNodeId, caret, type);
+        const res = insertTemplateAtTextNode(templateFields, activeNodeId, caret, templateSpec);
         if (res) {
           setTemplateFields(res.updatedNodes);
           setActiveNodeId(res.focusNodeId);
@@ -125,27 +133,14 @@ export default function IntelligenceHub() {
       return;
     }
 
-    const initialNode = createInitialNode(type);
+    const initialNode = createInitialNode(templateSpec);
     const initialTree = [initialNode];
     setTemplateFields(initialTree);
 
-    let focusNodeId;
-    if (type === 'fraction') {
-      focusNodeId = initialNode.numerator[0].id;
-    } else {
-      focusNodeId = initialNode.upper[0].id;
-    }
+    const focusNodeId = getTemplateFocusNodeId(initialNode);
     setActiveNodeId(focusNodeId);
     setActiveCaret(0);
     setQuery(serializeNodeArray(initialTree));
-  }
-
-  function clearTemplate() {
-    setTemplateFields(null);
-    setActiveNodeId(null);
-    setActiveCaret(null);
-    setQuery('');
-    inputRef.current?.focus();
   }
 
   function clearAll() {
@@ -190,6 +185,10 @@ export default function IntelligenceHub() {
     let targetField = null;
     if (parentTemplate.type === 'fraction') {
       if (fieldName === 'denominator') targetField = 'numerator';
+    } else if (parentTemplate.type === 'integral') {
+      if (fieldName === 'lower' || fieldName === 'expr' || fieldName === 'variable') {
+        targetField = 'upper';
+      }
     } else if (parentTemplate.type === 'sigma' || parentTemplate.type === 'product') {
       if (fieldName === 'lower' || fieldName === 'index' || fieldName === 'expr') {
         targetField = 'upper';
@@ -214,6 +213,12 @@ export default function IntelligenceHub() {
     let targetField = null;
     if (parentTemplate.type === 'fraction') {
       if (fieldName === 'numerator') targetField = 'denominator';
+    } else if (parentTemplate.type === 'integral') {
+      if (fieldName === 'upper') {
+        targetField = 'lower';
+      } else if (fieldName === 'lower') {
+        targetField = 'expr';
+      }
     } else if (parentTemplate.type === 'sigma' || parentTemplate.type === 'product') {
       if (fieldName === 'upper') {
         targetField = 'lower';
@@ -235,7 +240,7 @@ export default function IntelligenceHub() {
     if (result) {
       const flatText = serializeNodeArray(result.updatedNodes);
       if (flatText === '' && result.updatedNodes.length === 1 && result.updatedNodes[0].value === '') {
-        clearTemplate();
+        clearAll();
       } else {
         setTemplateFields(result.updatedNodes);
         setActiveNodeId(result.focusNodeId);
@@ -268,6 +273,22 @@ export default function IntelligenceHub() {
 
     if (text === '__FRACTION_TEMPLATE__') {
       startTemplate('fraction');
+      return;
+    }
+
+    if (text === '__INTEGRAL_TEMPLATE__') {
+      startTemplate('integral');
+      return;
+    }
+
+    if (text === '__DERIVATIVE_TEMPLATE__') {
+      startTemplate('derivative');
+      return;
+    }
+
+    if (text.startsWith('__TRIG_TEMPLATE__:')) {
+      const func = text.slice('__TRIG_TEMPLATE__:'.length) || 'sin';
+      startTemplate({ type: 'trigFunction', func });
       return;
     }
 
@@ -362,7 +383,7 @@ export default function IntelligenceHub() {
           </button>
 
           {templateFields && (
-            <div className="flex-1 flex items-center justify-between gap-3">
+            <div className="flex-1 flex items-center gap-3">
               <MathExpressionField
                 nodes={templateFields}
                 onChange={(updated) => {
@@ -381,13 +402,6 @@ export default function IntelligenceHub() {
                 onStartFraction={handleStartFractionInline}
                 isRoot={true}
               />
-              <button
-                onClick={clearTemplate}
-                className="h-8 px-2 rounded-md border border-outline/40 text-on-surface-variant hover:text-primary hover:border-primary/40 transition-colors"
-                title="Close template"
-              >
-                ×
-              </button>
             </div>
           )}
 
