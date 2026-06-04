@@ -27,6 +27,10 @@ export function serializeNodeArray(nodes) {
         const exponent = serializeNodeArray(node.exponent) || '2';
         return `(${base})^(${exponent})`;
       }
+      if (node.type === 'absolute') {
+        const arg = serializeNodeArray(node.arg);
+        return `abs(${arg})`;
+      }
       if (node.type === 'floor') {
         const arg = serializeNodeArray(node.arg);
         return `floor(${arg})`;
@@ -105,6 +109,9 @@ function getInitialFocusNodeId(node) {
   if (node.type === 'power') {
     return node.base[0].id;
   }
+  if (node.type === 'absolute') {
+    return node.arg[0].id;
+  }
   if (node.type === 'floor' || node.type === 'ceiling') {
     return node.arg[0].id;
   }
@@ -130,7 +137,7 @@ function getInitialFocusNodeId(node) {
 }
 
 export function createInitialNode(spec) {
-  const { type, func = 'sin', callName = null, exponent = 'n', degree = 'n' } = normalizeTemplateSpec(spec);
+  const { type, func = 'sin', callName = null, exponent = '', degree = 'n', base = '' } = normalizeTemplateSpec(spec);
   const id = generateId();
   if (type === 'fraction') {
     return {
@@ -144,8 +151,15 @@ export function createInitialNode(spec) {
     return {
       type,
       id,
-      base: [{ type: 'text', value: '', id: generateId() }],
+      base: [{ type: 'text', value: String(base), id: generateId() }],
       exponent: [{ type: 'text', value: String(exponent), id: generateId() }],
+    };
+  }
+  if (type === 'absolute') {
+    return {
+      type,
+      id,
+      arg: [{ type: 'text', value: '', id: generateId() }],
     };
   }
   if (type === 'floor' || type === 'ceiling') {
@@ -254,10 +268,15 @@ export function insertTemplateAtTextNode(nodes, targetId, caretPos, templateType
     const leftVal = targetNode.value.slice(0, caretPos);
     const rightVal = targetNode.value.slice(caretPos);
     const newTemplate = createInitialNode(templateType);
+    const isPowerTemplate = newTemplate.type === 'power';
 
     const replacements = [];
     if (leftVal.length > 0) {
-      replacements.push({ ...targetNode, value: leftVal });
+      if (isPowerTemplate) {
+        newTemplate.base = [{ type: 'text', value: leftVal, id: generateId() }];
+      } else {
+        replacements.push({ ...targetNode, value: leftVal });
+      }
     }
     replacements.push(newTemplate);
     if (rightVal.length > 0) {
@@ -299,6 +318,13 @@ export function insertTemplateAtTextNode(nodes, targetId, caretPos, templateType
           newNodes[i] = { ...node, [field]: res.updatedNodes };
           return { updatedNodes: newNodes, focusNodeId: res.focusNodeId };
         }
+      }
+    } else if (node.type === 'absolute') {
+      const res = insertTemplateAtTextNode(node.arg, targetId, caretPos, templateType);
+      if (res) {
+        const newNodes = [...nodes];
+        newNodes[i] = { ...node, arg: res.updatedNodes };
+        return { updatedNodes: newNodes, focusNodeId: res.focusNodeId };
       }
     } else if (node.type === 'floor' || node.type === 'ceiling') {
       const res = insertTemplateAtTextNode(node.arg, targetId, caretPos, templateType);
@@ -411,6 +437,9 @@ export function findParentArrayAndIndex(nodes, targetId) {
         const res = findParentArrayAndIndex(node[field], targetId);
         if (res) return res;
       }
+    } else if (node.type === 'absolute') {
+      const res = findParentArrayAndIndex(node.arg, targetId);
+      if (res) return res;
     } else if (node.type === 'floor' || node.type === 'ceiling') {
       const res = findParentArrayAndIndex(node.arg, targetId);
       if (res) return res;
@@ -493,6 +522,12 @@ export function findParentTemplateOfArray(nodes, targetId) {
         const res = findParentTemplateOfArray(node[field], targetId);
         if (res) return res;
       }
+    } else if (node.type === 'absolute') {
+      if (node.arg.some((n) => n.id === targetId)) {
+        return { parentTemplate: node, fieldName: 'arg' };
+      }
+      const argRes = findParentTemplateOfArray(node.arg, targetId);
+      if (argRes) return argRes;
     } else if (node.type === 'floor' || node.type === 'ceiling') {
       if (node.arg.some((n) => n.id === targetId)) {
         return { parentTemplate: node, fieldName: 'arg' };
@@ -638,6 +673,7 @@ export function deleteTemplateAtTextNodeStart(tree, targetId) {
   const isFirstField =
     (parentTemplate.type === 'fraction' && fieldName === 'numerator') ||
     (parentTemplate.type === 'power' && fieldName === 'base') ||
+    (parentTemplate.type === 'absolute' && fieldName === 'arg') ||
     ((parentTemplate.type === 'floor' || parentTemplate.type === 'ceiling') && fieldName === 'arg') ||
     (parentTemplate.type === 'mode' && fieldName === 'left') ||
     ((parentTemplate.type === 'nthRoot' || parentTemplate.type === 'logBase') && fieldName === 'value') ||
@@ -719,6 +755,8 @@ export function getFlatTextNodes(nodes) {
       } else if (node.type === 'power') {
         traverse(node.base);
         traverse(node.exponent);
+      } else if (node.type === 'absolute') {
+        traverse(node.arg);
       } else if (node.type === 'floor' || node.type === 'ceiling') {
         traverse(node.arg);
       } else if (node.type === 'mode') {

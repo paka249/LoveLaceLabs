@@ -32,11 +32,26 @@ const PRODUCT_DISPLAY = (
   </span>
 );
 
+const ABS_DISPLAY = (
+  <span className="inline-flex items-center gap-0.5 leading-none">
+    <span className="text-on-surface-variant">|</span>
+    <span className="text-[12px]">x</span>
+    <span className="text-on-surface-variant">|</span>
+  </span>
+);
+
+const EXP_DISPLAY = (
+  <span className="inline-flex items-start leading-none">
+    <span className="text-[13px]">e</span>
+    <span className="text-[10px] -translate-y-1">x</span>
+  </span>
+);
+
 /* ── Symbol sets per tab ── */
 const SYMBOLS = {
   basic: [
     { display: 'x²',  insert: '__POWER_TEMPLATE__:2' },
-    { display: 'xⁿ',  insert: '__POWER_TEMPLATE__:n' },
+    { display: 'xⁿ',  insert: '__POWER_TEMPLATE__' },
     { display: '√x',  insert: '__NTHROOT_TEMPLATE__:2' },
     { display: '∛x',  insert: '__NTHROOT_TEMPLATE__:3' },
     { display: 'ⁿ√x', insert: '__NTHROOT_TEMPLATE__:n' },
@@ -50,8 +65,8 @@ const SYMBOLS = {
     { display: 'π',   insert: 'π' },
     { display: 'e',   insert: 'e' },
     { display: '∞',   insert: '∞' },
-    { display: '|x|', insert: '||', cursorOffset: -1 },
-    { display: 'e^x', insert: 'e^' },
+    { display: ABS_DISPLAY, insert: '__ABS_TEMPLATE__' },
+    { display: EXP_DISPLAY, insert: '__EXP_TEMPLATE__' },
     { display: '(',   insert: '(' },
     { display: ')',   insert: ')' },
     { display: '×',   insert: '×' },

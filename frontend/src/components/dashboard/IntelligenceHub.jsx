@@ -187,6 +187,14 @@ export default function IntelligenceHub() {
   const inputRef = useRef(null);
   const isTemplateActive = Boolean(templateFields);
 
+  function autoResizeInput() {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const nextHeight = Math.min(Math.max(el.scrollHeight, 56), 260);
+    el.style.height = `${nextHeight}px`;
+  }
+
   useEffect(() => {
     if (calcOpen) {
       preloadSymbolicMath().catch(() => {
@@ -194,6 +202,12 @@ export default function IntelligenceHub() {
       });
     }
   }, [calcOpen]);
+
+  useEffect(() => {
+    if (!isTemplateActive) {
+      autoResizeInput();
+    }
+  }, [query, isTemplateActive]);
 
   function showError(message) {
     setError(message);
@@ -238,6 +252,7 @@ export default function IntelligenceHub() {
   function getTemplateFocusNodeId(node) {
     if (node.type === 'fraction') return node.numerator[0].id;
     if (node.type === 'power') return node.base[0].id;
+    if (node.type === 'absolute') return node.arg[0].id;
     if (node.type === 'floor' || node.type === 'ceiling') return node.arg[0].id;
     if (node.type === 'mode') return node.left[0].id;
     if (node.type === 'nthRoot' || node.type === 'logBase') return node.value[0].id;
@@ -391,7 +406,36 @@ export default function IntelligenceHub() {
   }
 
   function handleStartPowerInline(nodeId, caret) {
-    const result = insertTemplateAtTextNode(templateFields, nodeId, caret, { type: 'power', exponent: 'n' });
+    const parentRes = findParentArrayAndIndex(templateFields, nodeId);
+    if (parentRes && caret === 0 && parentRes.index > 0) {
+      const newTree = JSON.parse(JSON.stringify(templateFields));
+      const cloneRes = findParentArrayAndIndex(newTree, nodeId);
+      const parentArray = cloneRes.parentArray;
+      const index = cloneRes.index;
+      const prevNode = parentArray[index - 1];
+      const currentNode = parentArray[index];
+
+      const powerNode = createInitialNode({ type: 'power', exponent: '' });
+      if (prevNode.type === 'text') {
+        powerNode.base = [{ type: 'text', value: prevNode.value, id: generateId() }];
+      } else {
+        powerNode.base = [prevNode];
+      }
+
+      const replacement = [powerNode];
+      if (currentNode.type === 'text' && currentNode.value.length > 0) {
+        replacement.push(currentNode);
+      }
+
+      parentArray.splice(index - 1, 2, ...replacement);
+      setTemplateFields(newTree);
+      setActiveNodeId(powerNode.exponent[0].id);
+      setActiveCaret(0);
+      setQuery(serializeNodeArray(newTree));
+      return;
+    }
+
+    const result = insertTemplateAtTextNode(templateFields, nodeId, caret, { type: 'power', exponent: '' });
     if (result) {
       setTemplateFields(result.updatedNodes);
       setActiveNodeId(result.focusNodeId);
@@ -417,8 +461,18 @@ export default function IntelligenceHub() {
     }
 
     if (text.startsWith('__POWER_TEMPLATE__')) {
-      const [, exponent = 'n'] = text.split(':');
+      const [, exponent = ''] = text.split(':');
       startTemplate({ type: 'power', exponent });
+      return;
+    }
+
+    if (text === '__ABS_TEMPLATE__') {
+      startTemplate('absolute');
+      return;
+    }
+
+    if (text === '__EXP_TEMPLATE__') {
+      startTemplate({ type: 'power', base: 'e', exponent: 'x' });
       return;
     }
 
@@ -596,7 +650,8 @@ export default function IntelligenceHub() {
           {!isTemplateActive && (
             <textarea
               ref={inputRef}
-              className="bg-transparent border-none outline-none focus:ring-0 w-full min-h-[84px] resize-none font-mono text-[18px] leading-relaxed text-primary placeholder:text-outline-variant"
+              className="bg-transparent border-none outline-none focus:ring-0 w-full min-h-[56px] resize-none font-mono text-[18px] leading-relaxed text-primary placeholder:text-outline-variant"
+              style={{ overflow: 'hidden' }}
               placeholder="integrate log(x)^2 from 0 to 1..."
               value={query}
               onChange={(e) => {
@@ -612,7 +667,7 @@ export default function IntelligenceHub() {
 
                 if (e.key === '^' && !e.ctrlKey && !e.metaKey && !e.altKey) {
                   e.preventDefault();
-                  startTemplate({ type: 'power', exponent: 'n' });
+                  startTemplate({ type: 'power', exponent: '' });
                   return;
                 }
 

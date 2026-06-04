@@ -12,7 +12,7 @@ const PROTECTED_SYMBOLIC_IDENTIFIERS = [
   'asin', 'acos', 'atan',
   'sqrt', 'root',
   'sum', 'product', 'limit', 'diff', 'integrate', 'defint',
-  'mode', 'floor', 'ceil', 'log_b',
+  'mode', 'floor', 'ceil', 'abs', 'log_b',
   'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
   'log', 'ln', 'pi', 'e',
 ];
@@ -439,6 +439,7 @@ function parseExpression(expr, angleMode = 'rad') {
     .replace(/∜\(/g, '(x=>Math.pow(x,1/4))(')
     .replace(/\bfloor\(/g, 'Math.floor(')
     .replace(/\bceil\(/g, 'Math.ceil(')
+    .replace(/\babs\(/g, 'Math.abs(')
     .replace(/⌊([^⌋]+)⌋/g, 'Math.floor($1)')
     .replace(/⌈([^⌉]+)⌉/g, 'Math.ceil($1)')
     .replace(/\|([^|]+)\|/g, 'Math.abs($1)')

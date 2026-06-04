@@ -106,6 +106,31 @@ export default function MathTemplateWidget({
     );
   }
 
+  if (node.type === 'absolute') {
+    return (
+      <div className="inline-flex items-center gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+        <span className="text-primary/80 text-lg font-mono select-none">|</span>
+        <MathExpressionField
+          nodes={node.arg}
+          onChange={(updated) => onChange({ ...node, arg: updated })}
+          activeNodeId={activeNodeId}
+          activeCaret={activeCaret}
+          onFocusNode={onFocusNode}
+          onNavigateLeft={onNavigateLeft}
+          onNavigateRight={onNavigateRight}
+          onNavigateUp={onNavigateUp}
+          onNavigateDown={onNavigateDown}
+          onBackspaceAtStart={onBackspaceAtStart}
+          onSubmit={onSubmit}
+          onStartFraction={onStartFraction}
+          onStartPower={onStartPower}
+          size={size}
+        />
+        <span className="text-primary/80 text-lg font-mono select-none">|</span>
+      </div>
+    );
+  }
+
   if (node.type === 'floor' || node.type === 'ceiling') {
     const left = node.type === 'floor' ? '⌊' : '⌈';
     const right = node.type === 'floor' ? '⌋' : '⌉';
