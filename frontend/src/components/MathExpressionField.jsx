@@ -20,6 +20,7 @@ export default function MathExpressionField({
   onBackspaceAtStart,
   onSubmit,
   onStartFraction,
+  onStartPower,
   size = 'md',
   isRoot = false,
 }) {
@@ -81,6 +82,9 @@ export default function MathExpressionField({
                 } else if (e.key === '/' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
                   e.preventDefault();
                   onStartFraction?.(node.id, caret);
+                } else if (e.key === '^' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                  e.preventDefault();
+                  onStartPower?.(node.id, caret);
                 }
               }}
               style={{
@@ -108,6 +112,7 @@ export default function MathExpressionField({
             onBackspaceAtStart={onBackspaceAtStart}
             onSubmit={onSubmit}
             onStartFraction={onStartFraction}
+            onStartPower={onStartPower}
             size={size === 'md' ? 'sm' : 'xs'}
           />
         );

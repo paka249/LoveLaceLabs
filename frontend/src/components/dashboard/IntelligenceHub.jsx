@@ -112,6 +112,10 @@ export default function IntelligenceHub() {
 
   function getTemplateFocusNodeId(node) {
     if (node.type === 'fraction') return node.numerator[0].id;
+    if (node.type === 'power') return node.base[0].id;
+    if (node.type === 'floor' || node.type === 'ceiling') return node.arg[0].id;
+    if (node.type === 'mod') return node.left[0].id;
+    if (node.type === 'nthRoot' || node.type === 'logBase') return node.value[0].id;
     if (node.type === 'sigma' || node.type === 'product') return node.upper[0].id;
     if (node.type === 'integral' || node.type === 'derivative') return node.expr[0].id;
     if (node.type === 'derivativeN' || node.type === 'partial' || node.type === 'partialN') return node.expr[0].id;
@@ -261,6 +265,16 @@ export default function IntelligenceHub() {
     }
   }
 
+  function handleStartPowerInline(nodeId, caret) {
+    const result = insertTemplateAtTextNode(templateFields, nodeId, caret, { type: 'power', exponent: 'n' });
+    if (result) {
+      setTemplateFields(result.updatedNodes);
+      setActiveNodeId(result.focusNodeId);
+      setActiveCaret(0);
+      setQuery(serializeNodeArray(result.updatedNodes));
+    }
+  }
+
   function insertAtCursor(text, cursorOffset = 0) {
     if (text === '__SIGMA_TEMPLATE__') {
       startTemplate('sigma');
@@ -274,6 +288,12 @@ export default function IntelligenceHub() {
 
     if (text === '__FRACTION_TEMPLATE__') {
       startTemplate('fraction');
+      return;
+    }
+
+    if (text.startsWith('__POWER_TEMPLATE__')) {
+      const [, exponent = 'n'] = text.split(':');
+      startTemplate({ type: 'power', exponent });
       return;
     }
 
@@ -302,8 +322,34 @@ export default function IntelligenceHub() {
       return;
     }
 
-    if (text.startsWith('__TRIG_TEMPLATE__:')) {
-      const func = text.slice('__TRIG_TEMPLATE__:'.length) || 'sin';
+    if (text === '__FLOOR_TEMPLATE__') {
+      startTemplate('floor');
+      return;
+    }
+
+    if (text === '__CEILING_TEMPLATE__') {
+      startTemplate('ceiling');
+      return;
+    }
+
+    if (text === '__MODE_TEMPLATE__') {
+      startTemplate('mode');
+      return;
+    }
+
+    if (text.startsWith('__NTHROOT_TEMPLATE__')) {
+      const [, degree = 'n'] = text.split(':');
+      startTemplate({ type: 'nthRoot', degree });
+      return;
+    }
+
+    if (text === '__LOG_BASE_TEMPLATE__') {
+      startTemplate('logBase');
+      return;
+    }
+
+    if (text.startsWith('__FUNC_TEMPLATE__:')) {
+      const func = text.slice('__FUNC_TEMPLATE__:'.length) || 'sin';
       startTemplate({ type: 'trigFunction', func });
       return;
     }
@@ -416,6 +462,7 @@ export default function IntelligenceHub() {
                 onBackspaceAtStart={handleBackspaceAtStart}
                 onSubmit={compute}
                 onStartFraction={handleStartFractionInline}
+                onStartPower={handleStartPowerInline}
                 isRoot={true}
               />
             </div>
@@ -436,6 +483,12 @@ export default function IntelligenceHub() {
               if (e.key === '/' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 e.preventDefault();
                 startTemplate('fraction');
+                return;
+              }
+
+              if (e.key === '^' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                e.preventDefault();
+                startTemplate({ type: 'power', exponent: 'n' });
                 return;
               }
 

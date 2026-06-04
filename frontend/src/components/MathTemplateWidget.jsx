@@ -19,6 +19,7 @@ export default function MathTemplateWidget({
   onBackspaceAtStart,
   onSubmit,
   onStartFraction,
+  onStartPower,
   size = 'sm',
 }) {
   if (node.type === 'fraction') {
@@ -38,6 +39,7 @@ export default function MathTemplateWidget({
           onBackspaceAtStart={onBackspaceAtStart}
           onSubmit={onSubmit}
           onStartFraction={onStartFraction}
+          onStartPower={onStartPower}
           size={size}
         />
         {/* Fraction Line */}
@@ -56,8 +58,207 @@ export default function MathTemplateWidget({
           onBackspaceAtStart={onBackspaceAtStart}
           onSubmit={onSubmit}
           onStartFraction={onStartFraction}
+          onStartPower={onStartPower}
           size={size}
         />
+      </div>
+    );
+  }
+
+  if (node.type === 'power') {
+    return (
+      <div className="inline-flex items-start gap-0.5 align-middle mx-1 px-1 py-0.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+        <MathExpressionField
+          nodes={node.base}
+          onChange={(updated) => onChange({ ...node, base: updated })}
+          activeNodeId={activeNodeId}
+          activeCaret={activeCaret}
+          onFocusNode={onFocusNode}
+          onNavigateLeft={onNavigateLeft}
+          onNavigateRight={onNavigateRight}
+          onNavigateUp={onNavigateUp}
+          onNavigateDown={onNavigateDown}
+          onBackspaceAtStart={onBackspaceAtStart}
+          onSubmit={onSubmit}
+          onStartFraction={onStartFraction}
+          onStartPower={onStartPower}
+          size={size}
+        />
+        <div className="-mt-2">
+          <MathExpressionField
+            nodes={node.exponent}
+            onChange={(updated) => onChange({ ...node, exponent: updated })}
+            activeNodeId={activeNodeId}
+            activeCaret={activeCaret}
+            onFocusNode={onFocusNode}
+            onNavigateLeft={onNavigateLeft}
+            onNavigateRight={onNavigateRight}
+            onNavigateUp={onNavigateUp}
+            onNavigateDown={onNavigateDown}
+            onBackspaceAtStart={onBackspaceAtStart}
+            onSubmit={onSubmit}
+            onStartFraction={onStartFraction}
+            onStartPower={onStartPower}
+            size="xs"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (node.type === 'floor' || node.type === 'ceiling') {
+    const left = node.type === 'floor' ? '⌊' : '⌈';
+    const right = node.type === 'floor' ? '⌋' : '⌉';
+    return (
+      <div className="inline-flex items-center gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+        <span className="text-primary/80 text-lg font-mono select-none">{left}</span>
+        <MathExpressionField
+          nodes={node.arg}
+          onChange={(updated) => onChange({ ...node, arg: updated })}
+          activeNodeId={activeNodeId}
+          activeCaret={activeCaret}
+          onFocusNode={onFocusNode}
+          onNavigateLeft={onNavigateLeft}
+          onNavigateRight={onNavigateRight}
+          onNavigateUp={onNavigateUp}
+          onNavigateDown={onNavigateDown}
+          onBackspaceAtStart={onBackspaceAtStart}
+          onSubmit={onSubmit}
+          onStartFraction={onStartFraction}
+          onStartPower={onStartPower}
+          size={size}
+        />
+        <span className="text-primary/80 text-lg font-mono select-none">{right}</span>
+      </div>
+    );
+  }
+
+  if (node.type === 'mode') {
+    return (
+      <div className="inline-flex items-center gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+        <span className="text-primary/80 text-sm font-mono select-none">mod(</span>
+        <MathExpressionField
+          nodes={node.left}
+          onChange={(updated) => onChange({ ...node, left: updated })}
+          activeNodeId={activeNodeId}
+          activeCaret={activeCaret}
+          onFocusNode={onFocusNode}
+          onNavigateLeft={onNavigateLeft}
+          onNavigateRight={onNavigateRight}
+          onNavigateUp={onNavigateUp}
+          onNavigateDown={onNavigateDown}
+          onBackspaceAtStart={onBackspaceAtStart}
+          onSubmit={onSubmit}
+          onStartFraction={onStartFraction}
+          onStartPower={onStartPower}
+          size={size}
+        />
+        <span className="text-primary/80 text-sm font-mono select-none">,</span>
+        <MathExpressionField
+          nodes={node.right}
+          onChange={(updated) => onChange({ ...node, right: updated })}
+          activeNodeId={activeNodeId}
+          activeCaret={activeCaret}
+          onFocusNode={onFocusNode}
+          onNavigateLeft={onNavigateLeft}
+          onNavigateRight={onNavigateRight}
+          onNavigateUp={onNavigateUp}
+          onNavigateDown={onNavigateDown}
+          onBackspaceAtStart={onBackspaceAtStart}
+          onSubmit={onSubmit}
+          onStartFraction={onStartFraction}
+          onStartPower={onStartPower}
+          size={size}
+        />
+        <span className="text-primary/80 text-sm font-mono select-none">)</span>
+      </div>
+    );
+  }
+
+  if (node.type === 'nthRoot') {
+    return (
+      <div className="inline-flex items-start gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+        <div className="-mt-2">
+          <MathExpressionField
+            nodes={node.degree}
+            onChange={(updated) => onChange({ ...node, degree: updated })}
+            activeNodeId={activeNodeId}
+            activeCaret={activeCaret}
+            onFocusNode={onFocusNode}
+            onNavigateLeft={onNavigateLeft}
+            onNavigateRight={onNavigateRight}
+            onNavigateUp={onNavigateUp}
+            onNavigateDown={onNavigateDown}
+            onBackspaceAtStart={onBackspaceAtStart}
+            onSubmit={onSubmit}
+            onStartFraction={onStartFraction}
+            onStartPower={onStartPower}
+            size="xs"
+          />
+        </div>
+        <span className="text-primary text-xl font-mono select-none">√</span>
+        <MathExpressionField
+          nodes={node.value}
+          onChange={(updated) => onChange({ ...node, value: updated })}
+          activeNodeId={activeNodeId}
+          activeCaret={activeCaret}
+          onFocusNode={onFocusNode}
+          onNavigateLeft={onNavigateLeft}
+          onNavigateRight={onNavigateRight}
+          onNavigateUp={onNavigateUp}
+          onNavigateDown={onNavigateDown}
+          onBackspaceAtStart={onBackspaceAtStart}
+          onSubmit={onSubmit}
+          onStartFraction={onStartFraction}
+          onStartPower={onStartPower}
+          size={size}
+        />
+      </div>
+    );
+  }
+
+  if (node.type === 'logBase') {
+    return (
+      <div className="inline-flex items-start gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+        <div className="inline-flex items-end">
+          <span className="text-primary/80 text-sm font-mono select-none">log</span>
+          <div className="-mb-1">
+            <MathExpressionField
+              nodes={node.base}
+              onChange={(updated) => onChange({ ...node, base: updated })}
+              activeNodeId={activeNodeId}
+              activeCaret={activeCaret}
+              onFocusNode={onFocusNode}
+              onNavigateLeft={onNavigateLeft}
+              onNavigateRight={onNavigateRight}
+              onNavigateUp={onNavigateUp}
+              onNavigateDown={onNavigateDown}
+              onBackspaceAtStart={onBackspaceAtStart}
+              onSubmit={onSubmit}
+              onStartFraction={onStartFraction}
+              onStartPower={onStartPower}
+              size="xs"
+            />
+          </div>
+        </div>
+        <span className="text-primary/80 text-sm font-mono select-none">(</span>
+        <MathExpressionField
+          nodes={node.value}
+          onChange={(updated) => onChange({ ...node, value: updated })}
+          activeNodeId={activeNodeId}
+          activeCaret={activeCaret}
+          onFocusNode={onFocusNode}
+          onNavigateLeft={onNavigateLeft}
+          onNavigateRight={onNavigateRight}
+          onNavigateUp={onNavigateUp}
+          onNavigateDown={onNavigateDown}
+          onBackspaceAtStart={onBackspaceAtStart}
+          onSubmit={onSubmit}
+          onStartFraction={onStartFraction}
+          onStartPower={onStartPower}
+          size={size}
+        />
+        <span className="text-primary/80 text-sm font-mono select-none">)</span>
       </div>
     );
   }
@@ -81,6 +282,7 @@ export default function MathTemplateWidget({
             onBackspaceAtStart={onBackspaceAtStart}
             onSubmit={onSubmit}
             onStartFraction={onStartFraction}
+            onStartPower={onStartPower}
             size="xs"
           />
           {/* Math Symbol */}
@@ -102,6 +304,7 @@ export default function MathTemplateWidget({
               onBackspaceAtStart={onBackspaceAtStart}
               onSubmit={onSubmit}
               onStartFraction={onStartFraction}
+              onStartPower={onStartPower}
               size="xs"
             />
             <span className="text-primary/75 text-xs font-mono select-none">=</span>
@@ -177,6 +380,7 @@ export default function MathTemplateWidget({
             onBackspaceAtStart={onBackspaceAtStart}
             onSubmit={onSubmit}
             onStartFraction={onStartFraction}
+            onStartPower={onStartPower}
             size="xs"
           />
         </div>
@@ -194,6 +398,7 @@ export default function MathTemplateWidget({
             onBackspaceAtStart={onBackspaceAtStart}
             onSubmit={onSubmit}
             onStartFraction={onStartFraction}
+            onStartPower={onStartPower}
             size={size}
           />
         </div>

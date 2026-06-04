@@ -22,6 +22,34 @@ export function serializeNodeArray(nodes) {
         const den = serializeNodeArray(node.denominator);
         return `(${num})/(${den})`;
       }
+      if (node.type === 'power') {
+        const base = serializeNodeArray(node.base);
+        const exponent = serializeNodeArray(node.exponent) || '2';
+        return `(${base})^(${exponent})`;
+      }
+      if (node.type === 'floor') {
+        const arg = serializeNodeArray(node.arg);
+        return `floor(${arg})`;
+      }
+      if (node.type === 'ceiling') {
+        const arg = serializeNodeArray(node.arg);
+        return `ceil(${arg})`;
+      }
+      if (node.type === 'mode') {
+        const left = serializeNodeArray(node.left);
+        const right = serializeNodeArray(node.right);
+        return `mode(${left},${right})`;
+      }
+      if (node.type === 'nthRoot') {
+        const value = serializeNodeArray(node.value);
+        const degree = serializeNodeArray(node.degree) || 'n';
+        return `nthroot(${value},${degree})`;
+      }
+      if (node.type === 'logBase') {
+        const value = serializeNodeArray(node.value);
+        const base = serializeNodeArray(node.base) || 'b';
+        return `log_b(${value},${base})`;
+      }
       if (node.type === 'integral') {
         const expr = serializeNodeArray(node.expr);
         const variable = serializeNodeArray(node.variable) || 'x';
@@ -56,7 +84,7 @@ export function serializeNodeArray(nodes) {
       }
       if (node.type === 'trigFunction') {
         const arg = serializeNodeArray(node.arg);
-        return `${node.func}(${arg})`;
+        return `${node.callName ?? node.func}(${arg})`;
       }
       return '';
     })
@@ -74,6 +102,18 @@ function getInitialFocusNodeId(node) {
   if (node.type === 'fraction') {
     return node.numerator[0].id;
   }
+  if (node.type === 'power') {
+    return node.base[0].id;
+  }
+  if (node.type === 'floor' || node.type === 'ceiling') {
+    return node.arg[0].id;
+  }
+  if (node.type === 'mode') {
+    return node.left[0].id;
+  }
+  if (node.type === 'nthRoot' || node.type === 'logBase') {
+    return node.value[0].id;
+  }
   if (node.type === 'sigma' || node.type === 'product') {
     return node.upper[0].id;
   }
@@ -90,7 +130,7 @@ function getInitialFocusNodeId(node) {
 }
 
 export function createInitialNode(spec) {
-  const { type, func = 'sin' } = normalizeTemplateSpec(spec);
+  const { type, func = 'sin', callName = null, exponent = 'n', degree = 'n' } = normalizeTemplateSpec(spec);
   const id = generateId();
   if (type === 'fraction') {
     return {
@@ -98,6 +138,45 @@ export function createInitialNode(spec) {
       id,
       numerator: [{ type: 'text', value: '', id: generateId() }],
       denominator: [{ type: 'text', value: '', id: generateId() }],
+    };
+  }
+  if (type === 'power') {
+    return {
+      type,
+      id,
+      base: [{ type: 'text', value: '', id: generateId() }],
+      exponent: [{ type: 'text', value: String(exponent), id: generateId() }],
+    };
+  }
+  if (type === 'floor' || type === 'ceiling') {
+    return {
+      type,
+      id,
+      arg: [{ type: 'text', value: '', id: generateId() }],
+    };
+  }
+  if (type === 'mode') {
+    return {
+      type,
+      id,
+      left: [{ type: 'text', value: '', id: generateId() }],
+      right: [{ type: 'text', value: '', id: generateId() }],
+    };
+  }
+  if (type === 'nthRoot') {
+    return {
+      type,
+      id,
+      degree: [{ type: 'text', value: String(degree), id: generateId() }],
+      value: [{ type: 'text', value: '', id: generateId() }],
+    };
+  }
+  if (type === 'logBase') {
+    return {
+      type,
+      id,
+      base: [{ type: 'text', value: 'b', id: generateId() }],
+      value: [{ type: 'text', value: '', id: generateId() }],
     };
   }
   if (type === 'sigma' || type === 'product') {
@@ -159,6 +238,7 @@ export function createInitialNode(spec) {
       type,
       id,
       func,
+      callName: callName ?? func,
       arg: [{ type: 'text', value: '', id: generateId() }],
     };
   }
@@ -209,6 +289,44 @@ export function insertTemplateAtTextNode(nodes, targetId, caretPos, templateType
         const newNodes = [...nodes];
         newNodes[i] = { ...node, denominator: denRes.updatedNodes };
         return { updatedNodes: newNodes, focusNodeId: denRes.focusNodeId };
+      }
+    } else if (node.type === 'power') {
+      const fields = ['base', 'exponent'];
+      for (const field of fields) {
+        const res = insertTemplateAtTextNode(node[field], targetId, caretPos, templateType);
+        if (res) {
+          const newNodes = [...nodes];
+          newNodes[i] = { ...node, [field]: res.updatedNodes };
+          return { updatedNodes: newNodes, focusNodeId: res.focusNodeId };
+        }
+      }
+    } else if (node.type === 'floor' || node.type === 'ceiling') {
+      const res = insertTemplateAtTextNode(node.arg, targetId, caretPos, templateType);
+      if (res) {
+        const newNodes = [...nodes];
+        newNodes[i] = { ...node, arg: res.updatedNodes };
+        return { updatedNodes: newNodes, focusNodeId: res.focusNodeId };
+      }
+    } else if (node.type === 'mode') {
+      const fields = ['left', 'right'];
+      for (const field of fields) {
+        const res = insertTemplateAtTextNode(node[field], targetId, caretPos, templateType);
+        if (res) {
+          const newNodes = [...nodes];
+          newNodes[i] = { ...node, [field]: res.updatedNodes };
+          return { updatedNodes: newNodes, focusNodeId: res.focusNodeId };
+        }
+      }
+    } else if (node.type === 'nthRoot' || node.type === 'logBase') {
+      const fields = ['value', 'degree', 'base'];
+      for (const field of fields) {
+        if (!node[field]) continue;
+        const res = insertTemplateAtTextNode(node[field], targetId, caretPos, templateType);
+        if (res) {
+          const newNodes = [...nodes];
+          newNodes[i] = { ...node, [field]: res.updatedNodes };
+          return { updatedNodes: newNodes, focusNodeId: res.focusNodeId };
+        }
       }
     } else if (node.type === 'sigma' || node.type === 'product') {
       const fields = ['upper', 'lower', 'index', 'expr'];
@@ -287,6 +405,28 @@ export function findParentArrayAndIndex(nodes, targetId) {
       if (numRes) return numRes;
       const denRes = findParentArrayAndIndex(node.denominator, targetId);
       if (denRes) return denRes;
+    } else if (node.type === 'power') {
+      const fields = ['base', 'exponent'];
+      for (const field of fields) {
+        const res = findParentArrayAndIndex(node[field], targetId);
+        if (res) return res;
+      }
+    } else if (node.type === 'floor' || node.type === 'ceiling') {
+      const res = findParentArrayAndIndex(node.arg, targetId);
+      if (res) return res;
+    } else if (node.type === 'mode') {
+      const fields = ['left', 'right'];
+      for (const field of fields) {
+        const res = findParentArrayAndIndex(node[field], targetId);
+        if (res) return res;
+      }
+    } else if (node.type === 'nthRoot' || node.type === 'logBase') {
+      const fields = ['value', 'degree', 'base'];
+      for (const field of fields) {
+        if (!node[field]) continue;
+        const res = findParentArrayAndIndex(node[field], targetId);
+        if (res) return res;
+      }
     } else if (node.type === 'sigma' || node.type === 'product') {
       const fields = ['upper', 'lower', 'index', 'expr'];
       for (const field of fields) {
@@ -342,6 +482,47 @@ export function findParentTemplateOfArray(nodes, targetId) {
       if (numRes) return numRes;
       const denRes = findParentTemplateOfArray(node.denominator, targetId);
       if (denRes) return denRes;
+    } else if (node.type === 'power') {
+      const fields = ['base', 'exponent'];
+      for (const field of fields) {
+        if (node[field].some((n) => n.id === targetId)) {
+          return { parentTemplate: node, fieldName: field };
+        }
+      }
+      for (const field of fields) {
+        const res = findParentTemplateOfArray(node[field], targetId);
+        if (res) return res;
+      }
+    } else if (node.type === 'floor' || node.type === 'ceiling') {
+      if (node.arg.some((n) => n.id === targetId)) {
+        return { parentTemplate: node, fieldName: 'arg' };
+      }
+      const argRes = findParentTemplateOfArray(node.arg, targetId);
+      if (argRes) return argRes;
+    } else if (node.type === 'mode') {
+      const fields = ['left', 'right'];
+      for (const field of fields) {
+        if (node[field].some((n) => n.id === targetId)) {
+          return { parentTemplate: node, fieldName: field };
+        }
+      }
+      for (const field of fields) {
+        const res = findParentTemplateOfArray(node[field], targetId);
+        if (res) return res;
+      }
+    } else if (node.type === 'nthRoot' || node.type === 'logBase') {
+      const fields = ['value', 'degree', 'base'];
+      for (const field of fields) {
+        if (!node[field]) continue;
+        if (node[field].some((n) => n.id === targetId)) {
+          return { parentTemplate: node, fieldName: field };
+        }
+      }
+      for (const field of fields) {
+        if (!node[field]) continue;
+        const res = findParentTemplateOfArray(node[field], targetId);
+        if (res) return res;
+      }
     } else if (node.type === 'sigma' || node.type === 'product') {
       const fields = ['upper', 'lower', 'index', 'expr'];
       for (const field of fields) {
@@ -456,6 +637,10 @@ export function deleteTemplateAtTextNodeStart(tree, targetId) {
 
   const isFirstField =
     (parentTemplate.type === 'fraction' && fieldName === 'numerator') ||
+    (parentTemplate.type === 'power' && fieldName === 'base') ||
+    ((parentTemplate.type === 'floor' || parentTemplate.type === 'ceiling') && fieldName === 'arg') ||
+    (parentTemplate.type === 'mode' && fieldName === 'left') ||
+    ((parentTemplate.type === 'nthRoot' || parentTemplate.type === 'logBase') && fieldName === 'value') ||
     ((parentTemplate.type === 'sigma' || parentTemplate.type === 'product') && fieldName === 'upper') ||
     ((parentTemplate.type === 'integral' || parentTemplate.type === 'derivative') && fieldName === 'expr') ||
     ((parentTemplate.type === 'derivativeN' || parentTemplate.type === 'partial' || parentTemplate.type === 'partialN') && fieldName === 'expr') ||
@@ -531,6 +716,20 @@ export function getFlatTextNodes(nodes) {
       } else if (node.type === 'fraction') {
         traverse(node.numerator);
         traverse(node.denominator);
+      } else if (node.type === 'power') {
+        traverse(node.base);
+        traverse(node.exponent);
+      } else if (node.type === 'floor' || node.type === 'ceiling') {
+        traverse(node.arg);
+      } else if (node.type === 'mode') {
+        traverse(node.left);
+        traverse(node.right);
+      } else if (node.type === 'nthRoot') {
+        traverse(node.value);
+        traverse(node.degree);
+      } else if (node.type === 'logBase') {
+        traverse(node.value);
+        traverse(node.base);
       } else if (node.type === 'sigma' || node.type === 'product') {
         traverse(node.upper);
         traverse(node.lower);

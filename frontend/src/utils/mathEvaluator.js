@@ -12,6 +12,7 @@ const PROTECTED_SYMBOLIC_IDENTIFIERS = [
   'asin', 'acos', 'atan',
   'sqrt', 'root',
   'sum', 'product', 'limit', 'diff', 'integrate', 'defint',
+  'mode', 'floor', 'ceil', 'log_b',
   'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
   'log', 'ln', 'pi', 'e',
 ];
@@ -75,6 +76,8 @@ function toNerdamerExpression(expr) {
     .replace(/\bnthroot\(/g, 'nthroot(')
     .replace(/\broot\(/g, 'nthroot(')
     .replace(/log₁₀\(/g, 'log10(')
+    .replace(/\blog_b\(([^,]+),([^)]+)\)/g, '(log($1)/log($2))')
+    .replace(/\bmode\(([^,]+),([^)]+)\)/g, 'mod($1,$2)')
     .replace(/\bln\(/g, 'log(')
     .replace(/sin\^\(?-?1\)?\(/g, 'asin(')
     .replace(/cos\^\(?-?1\)?\(/g, 'acos(')
@@ -429,10 +432,14 @@ function parseExpression(expr, angleMode = 'rad') {
     .replace(/√\(/g, 'Math.sqrt(')
     .replace(/∛\(/g, '(x=>Math.pow(x,1/3))(')
     .replace(/∜\(/g, '(x=>Math.pow(x,1/4))(')
+    .replace(/\bfloor\(/g, 'Math.floor(')
+    .replace(/\bceil\(/g, 'Math.ceil(')
     .replace(/⌊([^⌋]+)⌋/g, 'Math.floor($1)')
     .replace(/⌈([^⌉]+)⌉/g, 'Math.ceil($1)')
     .replace(/\|([^|]+)\|/g, 'Math.abs($1)')
     .replace(/log₁₀\(/g, 'Math.log10(')
+    .replace(/\blog10\(/g, 'Math.log10(')
+    .replace(/\blog_b\(([^,]+),([^)]+)\)/g, '(Math.log($1)/Math.log($2))')
     .replace(/\bln\(/g, 'Math.log(')
     // Hyperbolic trig
     .replace(/\bsinh\(/g, 'Math.sinh(')
@@ -452,6 +459,7 @@ function parseExpression(expr, angleMode = 'rad') {
     .replace(/\bcot\(/g, `((x)=>1/Math.tan(x${toRad}))(`)
     .replace(/\bsec\(/g, `((x)=>1/Math.cos(x${toRad}))(`)
     .replace(/\bcsc\(/g, `((x)=>1/Math.sin(x${toRad}))(`)
+    .replace(/\bmode\(([^,]+),([^)]+)\)/g, '(($1)%($2))')
     // Operators
     .replace(/×/g, '*')
     .replace(/÷/g, '/')
