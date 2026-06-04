@@ -104,9 +104,17 @@ function normalizeTemplateSpec(spec) {
 
 function getInitialFocusNodeId(node) {
   if (node.type === 'fraction') {
+    const numVal = (node.numerator || []).map((n) => n.value || '').join('');
+    if (numVal.length > 0) {
+      return node.denominator[0].id;
+    }
     return node.numerator[0].id;
   }
   if (node.type === 'power') {
+    const baseVal = (node.base || []).map((n) => n.value || '').join('');
+    if (baseVal.length > 0) {
+      return node.exponent[0].id;
+    }
     return node.base[0].id;
   }
   if (node.type === 'absolute') {
@@ -259,6 +267,22 @@ export function createInitialNode(spec) {
   throw new Error(`Unknown node type: ${type}`);
 }
 
+function unwrapParens(str) {
+  const trimmed = str.trim();
+  if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
+    let depth = 0;
+    for (let i = 0; i < trimmed.length; i++) {
+      if (trimmed[i] === '(') depth++;
+      else if (trimmed[i] === ')') depth--;
+      if (depth === 0 && i < trimmed.length - 1) {
+        return trimmed;
+      }
+    }
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
 export function insertTemplateAtTextNode(nodes, targetId, caretPos, templateType) {
   if (!nodes || !Array.isArray(nodes)) return null;
 
@@ -269,14 +293,55 @@ export function insertTemplateAtTextNode(nodes, targetId, caretPos, templateType
     const rightVal = targetNode.value.slice(caretPos);
     const newTemplate = createInitialNode(templateType);
     const isPowerTemplate = newTemplate.type === 'power';
+    const isFractionTemplate = newTemplate.type === 'fraction';
+
+    let extractedOperand = '';
+    let remainingLeftVal = leftVal;
+
+    if (isPowerTemplate || isFractionTemplate) {
+      const trimmedLeft = leftVal.trimEnd();
+      if (trimmedLeft.endsWith(')')) {
+        let depth = 0;
+        let foundOpenIdx = -1;
+        for (let i = trimmedLeft.length - 1; i >= 0; i--) {
+          if (trimmedLeft[i] === ')') depth++;
+          else if (trimmedLeft[i] === '(') depth--;
+
+          if (depth === 0) {
+            foundOpenIdx = i;
+            break;
+          }
+        }
+
+        if (foundOpenIdx !== -1) {
+          let startIdx = foundOpenIdx;
+          while (startIdx > 0 && /[A-Za-zα-ωΑ-Ω0-9_]/.test(trimmedLeft[startIdx - 1])) {
+            startIdx--;
+          }
+          extractedOperand = trimmedLeft.slice(startIdx);
+          remainingLeftVal = trimmedLeft.slice(0, startIdx);
+        }
+      } else {
+        const match = trimmedLeft.match(/([A-Za-zα-ωΑ-Ω_][A-Za-zα-ωΑ-Ω0-9_]*|\d+(?:\.\d+)?)$/);
+        if (match) {
+          extractedOperand = match[0];
+          remainingLeftVal = trimmedLeft.slice(0, trimmedLeft.length - match[0].length);
+        }
+      }
+
+      if (extractedOperand) {
+        extractedOperand = unwrapParens(extractedOperand);
+        if (isPowerTemplate) {
+          newTemplate.base = [{ type: 'text', value: extractedOperand, id: generateId() }];
+        } else if (isFractionTemplate) {
+          newTemplate.numerator = [{ type: 'text', value: extractedOperand, id: generateId() }];
+        }
+      }
+    }
 
     const replacements = [];
-    if (leftVal.length > 0) {
-      if (isPowerTemplate) {
-        newTemplate.base = [{ type: 'text', value: leftVal, id: generateId() }];
-      } else {
-        replacements.push({ ...targetNode, value: leftVal });
-      }
+    if (remainingLeftVal.length > 0) {
+      replacements.push({ ...targetNode, value: remainingLeftVal });
     }
     replacements.push(newTemplate);
     if (rightVal.length > 0) {
@@ -683,6 +748,40 @@ export function deleteTemplateAtTextNodeStart(tree, targetId) {
     (parentTemplate.type === 'trigFunction' && fieldName === 'arg');
 
   if (!isFirstField) {
+    let prevFieldName = null;
+    if (parentTemplate.type === 'fraction') {
+      if (fieldName === 'denominator') prevFieldName = 'numerator';
+    } else if (parentTemplate.type === 'power') {
+      if (fieldName === 'exponent') prevFieldName = 'base';
+    } else if (parentTemplate.type === 'mode') {
+      if (fieldName === 'right') prevFieldName = 'left';
+    } else if (parentTemplate.type === 'sigma' || parentTemplate.type === 'product') {
+      if (fieldName === 'lower') prevFieldName = 'index';
+      else if (fieldName === 'index') prevFieldName = 'upper';
+      else if (fieldName === 'expr') prevFieldName = 'lower';
+    } else if (parentTemplate.type === 'integral') {
+      if (fieldName === 'lower') prevFieldName = 'upper';
+      else if (fieldName === 'expr') prevFieldName = 'lower';
+      else if (fieldName === 'variable') prevFieldName = 'expr';
+    } else if (parentTemplate.type === 'derivative' || parentTemplate.type === 'partial') {
+      if (fieldName === 'expr') prevFieldName = 'variable';
+    } else if (parentTemplate.type === 'derivativeN' || parentTemplate.type === 'partialN') {
+      if (fieldName === 'variable') prevFieldName = 'order';
+      else if (fieldName === 'expr') prevFieldName = 'variable';
+    }
+
+    if (prevFieldName) {
+      const prevNodes = parentTemplate[prevFieldName];
+      const flatText = getFlatTextNodes(prevNodes);
+      const lastTextNode = flatText[flatText.length - 1];
+      if (lastTextNode) {
+        return {
+          updatedNodes: tree,
+          focusNodeId: lastTextNode.id,
+          focusCaret: lastTextNode.value.length,
+        };
+      }
+    }
     return null;
   }
 

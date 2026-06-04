@@ -24,7 +24,7 @@ export default function MathTemplateWidget({
 }) {
   if (node.type === 'fraction') {
     return (
-      <div className="inline-flex flex-col items-center align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex flex-col items-center align-middle mx-1">
         {/* Numerator */}
         <MathExpressionField
           nodes={node.numerator}
@@ -67,7 +67,7 @@ export default function MathTemplateWidget({
 
   if (node.type === 'power') {
     return (
-      <div className="inline-flex items-end gap-0.5 align-middle mx-1 px-1.5 pt-1.5 pb-0.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-end gap-0.5 align-middle mx-0.5">
         <MathExpressionField
           nodes={node.base}
           onChange={(updated) => onChange({ ...node, base: updated })}
@@ -108,7 +108,7 @@ export default function MathTemplateWidget({
 
   if (node.type === 'absolute') {
     return (
-      <div className="inline-flex items-center gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-center gap-0.5 align-middle mx-0.5">
         <span className="text-primary/80 text-lg font-mono select-none">|</span>
         <MathExpressionField
           nodes={node.arg}
@@ -135,7 +135,7 @@ export default function MathTemplateWidget({
     const left = node.type === 'floor' ? '⌊' : '⌈';
     const right = node.type === 'floor' ? '⌋' : '⌉';
     return (
-      <div className="inline-flex items-center gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-center gap-0.5 align-middle mx-0.5">
         <span className="text-primary/80 text-lg font-mono select-none">{left}</span>
         <MathExpressionField
           nodes={node.arg}
@@ -160,7 +160,7 @@ export default function MathTemplateWidget({
 
   if (node.type === 'mode') {
     return (
-      <div className="inline-flex items-center gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-center gap-0.5 align-middle mx-0.5">
         <span className="text-primary/80 text-sm font-mono select-none">mod(</span>
         <MathExpressionField
           nodes={node.left}
@@ -209,7 +209,7 @@ export default function MathTemplateWidget({
     const showDegreeField = degreeText !== '' && degreeText !== '2';
 
     return (
-      <div className="inline-flex items-center gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-center gap-0.5 align-middle mx-0.5">
         {showDegreeField && (
           <div className="self-start -translate-y-1">
             <MathExpressionField
@@ -253,7 +253,7 @@ export default function MathTemplateWidget({
 
   if (node.type === 'logBase') {
     return (
-      <div className="inline-flex items-center gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-center gap-0.5 align-middle mx-0.5">
         <div className="inline-flex items-start">
           <span className="text-primary/80 text-sm font-mono select-none">log</span>
           <div className="self-end -ml-0.5 translate-y-1 scale-90 origin-top-left">
@@ -299,7 +299,7 @@ export default function MathTemplateWidget({
 
   if (node.type === 'sigma' || node.type === 'product') {
     return (
-      <div className="inline-flex items-center gap-2 align-middle mx-1 p-1.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-center gap-2 align-middle mx-1">
         {/* Bounds & symbol stack */}
         <div className="flex flex-col items-center gap-0.5">
           {/* Upper bound */}
@@ -383,7 +383,7 @@ export default function MathTemplateWidget({
 
   if (node.type === 'integral') {
     return (
-      <div className="inline-flex items-center gap-2 align-middle mx-1 p-1.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-center gap-1.5 align-middle mx-1">
         <div className="flex flex-col items-center gap-1">
           <MathExpressionField
             nodes={node.upper}
@@ -458,7 +458,7 @@ export default function MathTemplateWidget({
 
   if (node.type === 'derivative') {
     return (
-      <div className="inline-flex items-center gap-2 align-middle mx-1 p-1.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-center gap-1.5 align-middle mx-1">
         <div className="flex items-center gap-1 font-mono text-primary/80 text-sm select-none">
           <span>d/d</span>
           <MathExpressionField
@@ -500,7 +500,7 @@ export default function MathTemplateWidget({
 
   if (node.type === 'derivativeN') {
     return (
-      <div className="inline-flex items-center gap-2 align-middle mx-1 p-1.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-center gap-1.5 align-middle mx-1">
         <div className="flex items-center gap-1 font-mono text-primary/80 text-sm select-none">
           <span>d</span>
           <MathExpressionField
@@ -574,7 +574,7 @@ export default function MathTemplateWidget({
 
   if (node.type === 'partial') {
     return (
-      <div className="inline-flex items-center gap-2 align-middle mx-1 p-1.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-center gap-1.5 align-middle mx-1">
         <div className="flex items-center gap-1 font-mono text-primary/80 text-sm select-none">
           <span>∂/∂</span>
           <MathExpressionField
@@ -616,7 +616,7 @@ export default function MathTemplateWidget({
 
   if (node.type === 'partialN') {
     return (
-      <div className="inline-flex items-center gap-2 align-middle mx-1 p-1.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-center gap-1.5 align-middle mx-1">
         <div className="flex items-center gap-1 font-mono text-primary/80 text-sm select-none">
           <span>∂</span>
           <MathExpressionField
@@ -690,7 +690,7 @@ export default function MathTemplateWidget({
 
   if (node.type === 'trigFunction') {
     return (
-      <div className="inline-flex items-center gap-1.5 align-middle mx-1 p-1.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-center gap-0.5 align-middle mx-0.5">
         <span className="text-primary/80 text-sm font-mono select-none">{node.func}(</span>
         <MathExpressionField
           nodes={node.arg}

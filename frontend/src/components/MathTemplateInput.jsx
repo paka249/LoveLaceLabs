@@ -45,9 +45,13 @@ const MathTemplateInput = forwardRef(function MathTemplateInput(
     }
   }, [isActive, activeCaret]);
 
-  const borderClasses = isActive
-    ? 'border-primary shadow-[0_0_8px_rgba(90,240,179,0.35)]'
-    : 'border-primary/40 hover:border-primary/70';
+  const isEmpty = !rest.value || rest.value === '';
+
+  const dynamicClasses = isActive
+    ? 'border-primary bg-surface-container-low/40 shadow-[0_0_8px_rgba(90,240,179,0.35)] border-solid'
+    : isEmpty
+    ? 'border-primary/20 bg-surface-container-low/25 hover:border-primary/40 hover:bg-surface-container-low/45 border-dashed'
+    : 'border-transparent bg-transparent hover:border-primary/20 hover:bg-surface-container-low/20 border-solid';
 
   return (
     <input
@@ -58,17 +62,16 @@ const MathTemplateInput = forwardRef(function MathTemplateInput(
         'rounded-md',
         // Sizing (from size prop)
         sizeClasses,
-        // Background
-        'bg-surface-container-low/40',
-        // Border — 2px, colour driven by isActive
+        // Border size
         'border-2',
-        borderClasses,
+        // Dynamic border, background, shadow & style
+        dynamicClasses,
         // Typography
         'font-mono text-primary text-center',
         // Focus ring suppression (we use the border highlight instead)
         'outline-none focus:outline-none focus:ring-0',
         // Smooth transitions
-        'transition-[border-color,box-shadow] duration-150',
+        'transition-[border-color,background-color,box-shadow] duration-150',
         // Caller overrides
         className,
       ].join(' ')}
