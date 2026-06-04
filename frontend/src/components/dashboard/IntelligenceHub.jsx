@@ -309,6 +309,23 @@ export default function IntelligenceHub() {
       const prevNode = flatTextNodes[idx - 1];
       setActiveNodeId(prevNode.id);
       setActiveCaret(prevNode.value.length);
+      return;
+    }
+
+    if (idx === 0 && findParentTemplateOfArray(templateFields, nodeId)) {
+      const firstRootNode = templateFields[0];
+      if (firstRootNode?.type === 'text') {
+        setActiveNodeId(firstRootNode.id);
+        setActiveCaret(firstRootNode.value.length);
+        return;
+      }
+
+      const newRootText = { type: 'text', value: '', id: generateId() };
+      const newTree = [newRootText, ...templateFields];
+      setTemplateFields(newTree);
+      setActiveNodeId(newRootText.id);
+      setActiveCaret(0);
+      setQuery(serializeNodeArray(newTree));
     }
   }
 
@@ -319,6 +336,23 @@ export default function IntelligenceHub() {
       const nextNode = flatTextNodes[idx + 1];
       setActiveNodeId(nextNode.id);
       setActiveCaret(0);
+      return;
+    }
+
+    if (idx === flatTextNodes.length - 1 && findParentTemplateOfArray(templateFields, nodeId)) {
+      const lastRootNode = templateFields[templateFields.length - 1];
+      if (lastRootNode?.type === 'text') {
+        setActiveNodeId(lastRootNode.id);
+        setActiveCaret(0);
+        return;
+      }
+
+      const newRootText = { type: 'text', value: '', id: generateId() };
+      const newTree = [...templateFields, newRootText];
+      setTemplateFields(newTree);
+      setActiveNodeId(newRootText.id);
+      setActiveCaret(0);
+      setQuery(serializeNodeArray(newTree));
     }
   }
 
