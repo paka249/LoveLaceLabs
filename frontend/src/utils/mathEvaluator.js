@@ -63,6 +63,9 @@ function normalizeImplicitMultiplication(expr) {
 function toNerdamerExpression(expr) {
   return normalizeImplicitMultiplication(expr
     .trim()
+    .replace(/√([A-Za-zα-ωΑ-Ω_][A-Za-z0-9α-ωΑ-Ω_]*)/gu, 'sqrt($1)')
+    .replace(/∛([A-Za-zα-ωΑ-Ω_][A-Za-z0-9α-ωΑ-Ω_]*)/gu, 'root($1,3)')
+    .replace(/∜([A-Za-zα-ωΑ-Ω_][A-Za-z0-9α-ωΑ-Ω_]*)/gu, 'root($1,4)')
     .replace(/\bpi\b/gi, 'pi')
     .replace(/π/g, 'pi')
     .replace(/×/g, '*')
@@ -73,8 +76,8 @@ function toNerdamerExpression(expr) {
     .replace(/√\(/g, 'sqrt(')
     .replace(/∛\(/g, 'root(')
     .replace(/∜\(/g, 'root(')
-    .replace(/\bnthroot\(/g, 'nthroot(')
-    .replace(/\broot\(/g, 'nthroot(')
+    .replace(/\bnthroot\(([^,]+),([^)]+)\)/g, '(($1)^(1/($2)))')
+    .replace(/\broot\(([^,]+),([^)]+)\)/g, '(($1)^(1/($2)))')
     .replace(/log₁₀\(/g, 'log10(')
     .replace(/\blog_b\(([^,]+),([^)]+)\)/g, '(log($1)/log($2))')
     .replace(/\bmode\(([^,]+),([^)]+)\)/g, 'mod($1,$2)')
@@ -95,6 +98,7 @@ function toPrettyIndexNotation(expr) {
     .replace(/Πⁿᵢ₌₁\(([^)]*)\)/g, (_match, body) => `Πⁿᵢ₌₁(${body.replace(/\bk\b/g, 'i')})`)
     .replace(/Σ\(i=1→n\)\(/g, 'Σⁿᵢ₌₁(')
     .replace(/Π\(i=1→n\)\(/g, 'Πⁿᵢ₌₁(')
+    .replace(/lim\(x→a\)\(/g, 'limₓ→ₐ(')
     .replace(/lim\(x→([^)]+)\)\(/g, 'limₓ→$1(');
 }
 
@@ -140,6 +144,7 @@ function normalizeSymbolicInput(expr) {
 function normalizePrettyIndexNotation(expr) {
   return expr
     .replace(/->/g, '→')
+    .replace(/limₓ→ₐ\(/g, 'lim(x→a)(')
     .replace(/limₓ→([^\s(]+)\(/g, 'lim(x→$1)(')
     .replace(/Σⁿᵢ₌₁\(/g, 'Σ(i=1→n)(')
     .replace(/Πⁿᵢ₌₁\(/g, 'Π(i=1→n)(')
@@ -189,7 +194,7 @@ function normalizeLatexFractions(expr) {
 const SUPER_TO_NORMAL = {
   '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
   '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
-  '⁺': '+', '⁻': '-', '⁼': '=', '⁽': '(', '⁾': ')',
+  '⁺': '+', '⁻': '-', '⁼': '=', 'ᐟ': '/', '⁽': '(', '⁾': ')',
   'ᵃ': 'a', 'ᵇ': 'b', 'ᶜ': 'c', 'ᵈ': 'd', 'ᵉ': 'e', 'ᶠ': 'f', 'ᵍ': 'g', 'ʰ': 'h',
   'ⁱ': 'i', 'ʲ': 'j', 'ᵏ': 'k', 'ˡ': 'l', 'ᵐ': 'm', 'ⁿ': 'n', 'ᵒ': 'o', 'ᵖ': 'p',
   'ʳ': 'r', 'ˢ': 's', 'ᵗ': 't', 'ᵘ': 'u', 'ᵛ': 'v', 'ʷ': 'w', 'ˣ': 'x', 'ʸ': 'y', 'ᶻ': 'z',

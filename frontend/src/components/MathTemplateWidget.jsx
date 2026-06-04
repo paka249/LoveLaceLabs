@@ -67,7 +67,7 @@ export default function MathTemplateWidget({
 
   if (node.type === 'power') {
     return (
-      <div className="inline-flex items-start gap-0.5 align-middle mx-1 px-1 py-0.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+      <div className="inline-flex items-end gap-0.5 align-middle mx-1 px-1.5 pt-1.5 pb-0.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
         <MathExpressionField
           nodes={node.base}
           onChange={(updated) => onChange({ ...node, base: updated })}
@@ -84,7 +84,7 @@ export default function MathTemplateWidget({
           onStartPower={onStartPower}
           size={size}
         />
-        <div className="-mt-2">
+        <div className="mb-2">
           <MathExpressionField
             nodes={node.exponent}
             onChange={(updated) => onChange({ ...node, exponent: updated })}
@@ -176,26 +176,35 @@ export default function MathTemplateWidget({
   }
 
   if (node.type === 'nthRoot') {
+    const degreeText = (node.degree || [])
+      .filter((part) => part.type === 'text')
+      .map((part) => part.value)
+      .join('')
+      .trim();
+    const showDegreeField = degreeText !== '' && degreeText !== '2';
+
     return (
-      <div className="inline-flex items-start gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
-        <div className="-mt-2">
-          <MathExpressionField
-            nodes={node.degree}
-            onChange={(updated) => onChange({ ...node, degree: updated })}
-            activeNodeId={activeNodeId}
-            activeCaret={activeCaret}
-            onFocusNode={onFocusNode}
-            onNavigateLeft={onNavigateLeft}
-            onNavigateRight={onNavigateRight}
-            onNavigateUp={onNavigateUp}
-            onNavigateDown={onNavigateDown}
-            onBackspaceAtStart={onBackspaceAtStart}
-            onSubmit={onSubmit}
-            onStartFraction={onStartFraction}
-            onStartPower={onStartPower}
-            size="xs"
-          />
-        </div>
+      <div className="inline-flex items-center gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+        {showDegreeField && (
+          <div className="self-start -translate-y-1">
+            <MathExpressionField
+              nodes={node.degree}
+              onChange={(updated) => onChange({ ...node, degree: updated })}
+              activeNodeId={activeNodeId}
+              activeCaret={activeCaret}
+              onFocusNode={onFocusNode}
+              onNavigateLeft={onNavigateLeft}
+              onNavigateRight={onNavigateRight}
+              onNavigateUp={onNavigateUp}
+              onNavigateDown={onNavigateDown}
+              onBackspaceAtStart={onBackspaceAtStart}
+              onSubmit={onSubmit}
+              onStartFraction={onStartFraction}
+              onStartPower={onStartPower}
+              size="xs"
+            />
+          </div>
+        )}
         <span className="text-primary text-xl font-mono select-none">√</span>
         <MathExpressionField
           nodes={node.value}
@@ -219,10 +228,10 @@ export default function MathTemplateWidget({
 
   if (node.type === 'logBase') {
     return (
-      <div className="inline-flex items-start gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
-        <div className="inline-flex items-end">
+      <div className="inline-flex items-center gap-1 align-middle mx-1 p-1 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
+        <div className="inline-flex items-start">
           <span className="text-primary/80 text-sm font-mono select-none">log</span>
-          <div className="-mb-1">
+          <div className="self-end -ml-0.5 translate-y-1 scale-90 origin-top-left">
             <MathExpressionField
               nodes={node.base}
               onChange={(updated) => onChange({ ...node, base: updated })}
@@ -350,7 +359,7 @@ export default function MathTemplateWidget({
   if (node.type === 'integral') {
     return (
       <div className="inline-flex items-center gap-2 align-middle mx-1 p-1.5 bg-surface-container-low/30 rounded-lg border border-primary/15 shadow-sm">
-        <div className="flex flex-col items-center gap-0.5">
+        <div className="flex flex-col items-center gap-1">
           <MathExpressionField
             nodes={node.upper}
             onChange={(updated) => onChange({ ...node, upper: updated })}
@@ -366,7 +375,7 @@ export default function MathTemplateWidget({
             onStartFraction={onStartFraction}
             size="xs"
           />
-          <div className="text-[30px] font-semibold leading-none text-primary select-none">∫</div>
+          <div className="text-[30px] font-semibold leading-none text-primary select-none py-0.5">∫</div>
           <MathExpressionField
             nodes={node.lower}
             onChange={(updated) => onChange({ ...node, lower: updated })}

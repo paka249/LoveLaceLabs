@@ -12,7 +12,7 @@ const TABS = [
 const LIMIT_DISPLAY = (
   <span className="inline-flex flex-col items-center leading-none gap-0.5">
     <span className="text-[10px]">lim</span>
-    <span className="text-[9px] text-on-surface-variant">x→a</span>
+    <span className="text-[9px] text-on-surface-variant">ₓ→ₐ</span>
   </span>
 );
 

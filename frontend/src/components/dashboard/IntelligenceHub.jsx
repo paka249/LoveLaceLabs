@@ -5,6 +5,7 @@ import Calculator from '../Calculator';
 import MathExpressionField from '../MathExpressionField';
 import { evaluate, formatResult, preloadSymbolicMath } from '../../utils/mathEvaluator';
 import {
+  generateId,
   serializeNodeArray,
   createInitialNode,
   insertTemplateAtTextNode,
@@ -17,7 +18,7 @@ import {
 const SUPER_MAP = {
   '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
   '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
-  '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾',
+  '+': '⁺', '-': '⁻', '=': '⁼', '/': 'ᐟ', '(': '⁽', ')': '⁾',
   a: 'ᵃ', b: 'ᵇ', c: 'ᶜ', d: 'ᵈ', e: 'ᵉ', f: 'ᶠ', g: 'ᵍ', h: 'ʰ',
   i: 'ⁱ', j: 'ʲ', k: 'ᵏ', l: 'ˡ', m: 'ᵐ', n: 'ⁿ', o: 'ᵒ', p: 'ᵖ',
   r: 'ʳ', s: 'ˢ', t: 'ᵗ', u: 'ᵘ', v: 'ᵛ', w: 'ʷ', x: 'ˣ', y: 'ʸ', z: 'ᶻ',
@@ -55,6 +56,122 @@ function formatEditorNotation(value) {
   return formatted;
 }
 
+function splitTopLevelFraction(value) {
+  const text = String(value || '').trim();
+  if (!text) return null;
+
+  let depth = 0;
+  let slashIndex = -1;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (char === '(') depth += 1;
+    else if (char === ')') depth = Math.max(0, depth - 1);
+    else if (char === '/' && depth === 0) {
+      if (slashIndex !== -1) return null;
+      slashIndex = i;
+    }
+  }
+
+  if (slashIndex === -1) return null;
+  const numerator = text.slice(0, slashIndex).trim();
+  const denominator = text.slice(slashIndex + 1).trim();
+  if (!numerator || !denominator) return null;
+
+  return { numerator, denominator };
+}
+
+function unwrapOuterParens(value) {
+  const text = String(value || '').trim();
+  if (!text.startsWith('(') || !text.endsWith(')')) return text;
+
+  let depth = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (char === '(') depth += 1;
+    else if (char === ')') depth -= 1;
+
+    if (depth === 0 && i < text.length - 1) {
+      return text;
+    }
+  }
+
+  return text.slice(1, -1).trim();
+}
+
+function splitTopLevelMultiplication(value) {
+  const text = String(value || '').trim();
+  if (!text) return null;
+
+  let depth = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (char === '(') depth += 1;
+    else if (char === ')') depth = Math.max(0, depth - 1);
+    else if (char === '*' && depth === 0) {
+      const left = text.slice(0, i).trim();
+      const right = text.slice(i + 1).trim();
+      if (!left || !right) return null;
+      return { left, right };
+    }
+  }
+
+  return null;
+}
+
+function combineFactors(left, right) {
+  const a = String(left || '').trim();
+  const b = String(right || '').trim();
+  if (!a) return b;
+  if (!b) return a;
+  if (a === '1') return b;
+  if (b === '1') return a;
+  return `${a}*${b}`;
+}
+
+function getFractionParts(value) {
+  const direct = splitTopLevelFraction(value);
+  if (direct) return direct;
+
+  const product = splitTopLevelMultiplication(value);
+  if (!product) return null;
+
+  const leftFraction = splitTopLevelFraction(unwrapOuterParens(product.left));
+  if (leftFraction) {
+    return {
+      numerator: combineFactors(leftFraction.numerator, product.right),
+      denominator: leftFraction.denominator,
+    };
+  }
+
+  const rightFraction = splitTopLevelFraction(unwrapOuterParens(product.right));
+  if (rightFraction) {
+    return {
+      numerator: combineFactors(product.left, rightFraction.numerator),
+      denominator: rightFraction.denominator,
+    };
+  }
+
+  return null;
+}
+
+function createFractionResultTree(value) {
+  const parts = getFractionParts(value);
+  if (!parts) return null;
+
+  const numeratorValue = formatEditorNotation(parts.numerator);
+  const denominatorValue = formatEditorNotation(parts.denominator);
+
+  return [
+    {
+      type: 'fraction',
+      id: generateId(),
+      numerator: [{ type: 'text', value: numeratorValue, id: generateId() }],
+      denominator: [{ type: 'text', value: denominatorValue, id: generateId() }],
+    },
+  ];
+}
+
 export default function IntelligenceHub() {
   const [query, setQuery] = useState('');
   const [calcOpen, setCalcOpen] = useState(false);
@@ -85,10 +202,18 @@ export default function IntelligenceHub() {
 
   function applyResult(result) {
     if (result.success) {
-      setTemplateFields(null);
+      const formattedResult = formatResult(result.result);
+      const fractionTree = createFractionResultTree(formattedResult);
+
+      if (fractionTree) {
+        setTemplateFields(fractionTree);
+      } else {
+        setTemplateFields(null);
+      }
+
       setActiveNodeId(null);
       setActiveCaret(null);
-      setQuery(formatResult(result.result));
+      setQuery(formattedResult);
       setError('');
       inputRef.current?.focus();
       return;
@@ -114,7 +239,7 @@ export default function IntelligenceHub() {
     if (node.type === 'fraction') return node.numerator[0].id;
     if (node.type === 'power') return node.base[0].id;
     if (node.type === 'floor' || node.type === 'ceiling') return node.arg[0].id;
-    if (node.type === 'mod') return node.left[0].id;
+    if (node.type === 'mode') return node.left[0].id;
     if (node.type === 'nthRoot' || node.type === 'logBase') return node.value[0].id;
     if (node.type === 'sigma' || node.type === 'product') return node.upper[0].id;
     if (node.type === 'integral' || node.type === 'derivative') return node.expr[0].id;
@@ -468,36 +593,36 @@ export default function IntelligenceHub() {
             </div>
           )}
 
-          <textarea
-            ref={inputRef}
-            className={`bg-transparent border-none outline-none focus:ring-0 w-full min-h-[84px] resize-none font-mono text-[18px] leading-relaxed text-primary placeholder:text-outline-variant transition-opacity ${
-              isTemplateActive ? 'opacity-0 pointer-events-none absolute' : 'opacity-100'
-            }`}
-            placeholder={isTemplateActive ? '' : 'integrate log(x)^2 from 0 to 1...'}
-            value={isTemplateActive ? '' : query}
-            onChange={(e) => {
-              setTemplateFields(null);
-              setQuery(formatEditorNotation(e.target.value));
-            }}
-            onKeyDown={(e) => {
-              if (e.key === '/' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                e.preventDefault();
-                startTemplate('fraction');
-                return;
-              }
+          {!isTemplateActive && (
+            <textarea
+              ref={inputRef}
+              className="bg-transparent border-none outline-none focus:ring-0 w-full min-h-[84px] resize-none font-mono text-[18px] leading-relaxed text-primary placeholder:text-outline-variant"
+              placeholder="integrate log(x)^2 from 0 to 1..."
+              value={query}
+              onChange={(e) => {
+                setTemplateFields(null);
+                setQuery(formatEditorNotation(e.target.value));
+              }}
+              onKeyDown={(e) => {
+                if (e.key === '/' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                  e.preventDefault();
+                  startTemplate('fraction');
+                  return;
+                }
 
-              if (e.key === '^' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                e.preventDefault();
-                startTemplate({ type: 'power', exponent: 'n' });
-                return;
-              }
+                if (e.key === '^' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                  e.preventDefault();
+                  startTemplate({ type: 'power', exponent: 'n' });
+                  return;
+                }
 
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                void compute();
-              }
-            }}
-          />
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  void compute();
+                }
+              }}
+            />
+          )}
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={clearAll}
