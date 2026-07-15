@@ -13,9 +13,13 @@ const PROTECTED_SYMBOLIC_IDENTIFIERS = [
   'sqrt', 'root',
   'sum', 'product', 'limit', 'diff', 'integrate', 'defint',
   'mode', 'floor', 'ceil', 'abs', 'log_b',
+  'matrix', 'det', 'determinant', 'transpose', 'invert', 'imatrix',
+  'dot', 'cross', 'rank', 'trace',
   'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
   'log', 'ln', 'pi', 'e',
 ];
+
+const MATRIX_FUNCTION_PATTERN = /\b(matrix|det|determinant|transpose|invert|imatrix|dot|cross|rank|trace)\s*\(/i;
 
 export async function preloadSymbolicMath() {
   if (!symbolicMathPromise) {
@@ -400,7 +404,10 @@ async function evaluateSymbolic(expression, nerdamerInstance) {
   const trimmed = normalizeSymbolicInput(expression);
   const translated = translateSymbolicToNerdamer(trimmed);
 
-  if (translated === trimmed) {
+  // Symbolic operators (integrals/sums/etc.) are rewritten by translateSymbolicToNerdamer.
+  // Matrix expressions are passed through as-is and still need nerdamer evaluation.
+  const shouldUseNerdamer = translated !== trimmed || MATRIX_FUNCTION_PATTERN.test(trimmed);
+  if (!shouldUseNerdamer) {
     return null;
   }
 
@@ -458,6 +465,7 @@ function parseExpression(expr, angleMode = 'rad') {
     .replace(/sin⁻¹\(/g, `((x)=>Math.asin(x)${fromRad})(`)
     .replace(/cos⁻¹\(/g, `((x)=>Math.acos(x)${fromRad})(`)
     .replace(/tan⁻¹\(/g, `((x)=>Math.atan(x)${fromRad})(`)
+    .replace(/\bdet\(/g, 'determinant(')
     // Trig (input conversion based on selected mode)
     .replace(/\bsin\(/g, `((x)=>Math.sin(x${toRad}))(`)
     .replace(/\bcos\(/g, `((x)=>Math.cos(x${toRad}))(`)

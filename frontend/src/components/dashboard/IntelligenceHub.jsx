@@ -618,8 +618,8 @@ export default function IntelligenceHub() {
     <section className="max-w-2xl w-full mx-auto space-y-4">
       <div className="text-center space-y-3">
         <h2 className="text-[52px] font-bold font-sans tracking-tight leading-[1.1] text-on-surface">
-          Ada's{' '}
-          <span className="text-primary">Computer</span>
+          Analytical{' '}
+          <span className="text-primary">Engine</span>
         </h2>
         <p className="text-[15px] font-sans text-on-surface-variant leading-relaxed">
           Enter symbolic expressions, natural language queries, or data streams.

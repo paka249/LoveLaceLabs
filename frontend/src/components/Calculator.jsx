@@ -6,6 +6,7 @@ const TABS = [
   { id: 'greek', label: 'αβγ' },
   { id: 'trig',  label: 'Trig' },
   { id: 'calc',  label: 'Σ ∫ Π' },
+  { id: 'matrix', label: 'Matrix' },
   { id: 'rel',   label: '≥ ÷ →' },
 ];
 
@@ -104,6 +105,20 @@ const SYMBOLS = {
     { display: PRODUCT_DISPLAY, insert: '__PRODUCT_TEMPLATE__' },
     { display: 'x',      insert: 'x' },
     { display: 'y',      insert: 'y' },
+  ],
+  matrix: [
+    { display: 'M',      insert: 'matrix([1,2],[3,4])' },
+    { display: 'det',    insert: 'determinant(matrix([1,2],[3,4]))' },
+    { display: 'T',      insert: 'transpose(matrix([1,2],[3,4]))' },
+    { display: 'M⁻¹',    insert: 'invert(matrix([1,2],[3,4]))' },
+    { display: 'Iₙ',     insert: 'imatrix(3)' },
+    { display: 'A+B',    insert: 'matrix([1,2],[3,4])+matrix([5,6],[7,8])' },
+    { display: 'A-B',    insert: 'matrix([1,2],[3,4])-matrix([5,6],[7,8])' },
+    { display: 'A×B',    insert: 'matrix([1,2],[3,4])*matrix([5,6],[7,8])' },
+    { display: 'dot',    insert: 'dot([1,2,3],[4,5,6])' },
+    { display: 'cross',  insert: 'cross([1,2,3],[4,5,6])' },
+    { display: 'rank',   insert: 'rank(matrix([1,2],[3,4]))' },
+    { display: 'trace',  insert: 'trace(matrix([1,2],[3,4]))' },
   ],
   rel: [
     { display: '≥', insert: '>=' },
