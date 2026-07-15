@@ -113,12 +113,7 @@ export function serializeNodeArray(nodes) {
       if (node.type === 'matrixOp2') {
         const a = serializeNodeArray(node.a);
         const b = serializeNodeArray(node.b);
-        if (node.op === 'add') return `(${a})+(${b})`;
-        if (node.op === 'sub') return `(${a})-(${b})`;
-        if (node.op === 'mul') return `(${a})*(${b})`;
-        if (node.op === 'dot') return `dot(${a},${b})`;
-        if (node.op === 'cross') return `cross(${a},${b})`;
-        return '';
+        return `${node.op}(${a},${b})`;
       }
       return '';
     })
@@ -330,7 +325,7 @@ export function createInitialNode(spec) {
     return {
       type,
       id,
-      op: op ?? 'add',
+      op: op ?? 'dot',
       a: [createInitialNode({ type: 'matrix', rows: aRows, cols: aCols, vector })],
       b: [createInitialNode({ type: 'matrix', rows: bRows, cols: bCols, vector })],
     };

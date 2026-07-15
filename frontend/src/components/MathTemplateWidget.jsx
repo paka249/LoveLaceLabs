@@ -887,17 +887,6 @@ export default function MathTemplateWidget({
       size,
     };
 
-    const infixGlyph = { add: '+', sub: '−', mul: '×' }[node.op];
-    if (infixGlyph) {
-      return (
-        <div className="inline-flex items-center gap-1.5 align-middle mx-0.5">
-          <MathExpressionField {...fieldPropsA} />
-          <span className="text-primary/80 text-base font-mono select-none">{infixGlyph}</span>
-          <MathExpressionField {...fieldPropsB} />
-        </div>
-      );
-    }
-
     return (
       <div className="inline-flex items-center gap-0.5 align-middle mx-0.5">
         <span className="text-primary/80 text-sm font-mono select-none">{node.op}(</span>

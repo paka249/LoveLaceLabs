@@ -542,21 +542,6 @@ export default function IntelligenceHub() {
       return;
     }
 
-    if (text === '__MATRIX_ADD_TEMPLATE__') {
-      startTemplate({ type: 'matrixOp2', op: 'add' });
-      return;
-    }
-
-    if (text === '__MATRIX_SUB_TEMPLATE__') {
-      startTemplate({ type: 'matrixOp2', op: 'sub' });
-      return;
-    }
-
-    if (text === '__MATRIX_MUL_TEMPLATE__') {
-      startTemplate({ type: 'matrixOp2', op: 'mul' });
-      return;
-    }
-
     if (text === '__MATRIX_DOT_TEMPLATE__') {
       startTemplate({ type: 'matrixOp2', op: 'dot', vector: true, aRows: 1, aCols: 3, bRows: 1, bCols: 3 });
       return;
