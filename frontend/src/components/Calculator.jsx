@@ -56,6 +56,13 @@ const MATRIX_DISPLAY = (
   </span>
 );
 
+const LOGB_DISPLAY = (
+  <span className="inline-flex items-baseline leading-none">
+    <span className="text-[12px]">log</span>
+    <span className="text-[9px] translate-y-[3px] text-on-surface-variant">b</span>
+  </span>
+);
+
 /* ── Symbol sets per tab ── */
 const SYMBOLS = {
   basic: [
@@ -65,8 +72,8 @@ const SYMBOLS = {
     { display: '∛x',  insert: '__NTHROOT_TEMPLATE__:3' },
     { display: 'ⁿ√x', insert: '__NTHROOT_TEMPLATE__:n' },
     { display: 'x/y', insert: '__FRACTION_TEMPLATE__' },
-    { display: 'log', insert: '__FUNC_TEMPLATE__:log₁₀' },
-    { display: 'log_b', insert: '__LOG_BASE_TEMPLATE__' },
+    { display: 'log₁₀', insert: '__FUNC_TEMPLATE__:log₁₀' },
+    { display: LOGB_DISPLAY, insert: '__LOG_BASE_TEMPLATE__' },
     { display: 'ln',  insert: '__FUNC_TEMPLATE__:ln' },
     { display: 'mod', insert: '__MODE_TEMPLATE__' },
     { display: '⌊x⌋', insert: '__FLOOR_TEMPLATE__' },
@@ -116,17 +123,17 @@ const SYMBOLS = {
   ],
   matrix: [
     { display: MATRIX_DISPLAY, insert: '__MATRIX_TEMPLATE__:2x2' },
-    { display: 'det',    insert: 'determinant(matrix([1,2],[3,4]))' },
-    { display: 'T',      insert: 'transpose(matrix([1,2],[3,4]))' },
-    { display: 'M⁻¹',    insert: 'invert(matrix([1,2],[3,4]))' },
+    { display: 'det',    insert: '__MATRIX_DET_TEMPLATE__' },
+    { display: 'T',      insert: '__MATRIX_TRANSPOSE_TEMPLATE__' },
+    { display: 'M⁻¹',    insert: '__MATRIX_INVERT_TEMPLATE__' },
     { display: 'Iₙ',     insert: 'imatrix(3)' },
-    { display: 'A+B',    insert: 'matrix([1,2],[3,4])+matrix([5,6],[7,8])' },
-    { display: 'A-B',    insert: 'matrix([1,2],[3,4])-matrix([5,6],[7,8])' },
-    { display: 'A×B',    insert: 'matrix([1,2],[3,4])*matrix([5,6],[7,8])' },
-    { display: 'dot',    insert: 'dot([1,2,3],[4,5,6])' },
-    { display: 'cross',  insert: 'cross([1,2,3],[4,5,6])' },
-    { display: 'rank',   insert: 'rank(matrix([1,2],[3,4]))' },
-    { display: 'trace',  insert: 'trace(matrix([1,2],[3,4]))' },
+    { display: 'A+B',    insert: '__MATRIX_ADD_TEMPLATE__' },
+    { display: 'A-B',    insert: '__MATRIX_SUB_TEMPLATE__' },
+    { display: 'A×B',    insert: '__MATRIX_MUL_TEMPLATE__' },
+    { display: 'dot',    insert: '__MATRIX_DOT_TEMPLATE__' },
+    { display: 'cross',  insert: '__MATRIX_CROSS_TEMPLATE__' },
+    { display: 'rank',   insert: '__MATRIX_RANK_TEMPLATE__' },
+    { display: 'trace',  insert: '__MATRIX_TRACE_TEMPLATE__' },
   ],
   rel: [
     { display: '≥', insert: '>=' },
@@ -172,12 +179,16 @@ export default function Calculator({ activeTab, setActiveTab, onInsert, angleMod
 
       {/* ── Symbol grid ── */}
       <div className="p-3">
-        <div className="grid grid-cols-9 gap-1.5">
+        <div className={`grid gap-1.5 ${activeTab === 'trig' ? 'grid-cols-3 gap-y-3' : 'grid-cols-9'}`}>
           {SYMBOLS[activeTab].map((sym, i) => (
             <button
               key={i}
               onClick={() => onInsert(sym.insert, sym.cursorOffset || 0)}
-              className="flex items-center justify-center h-10 rounded-lg bg-surface-container text-on-surface text-[13px] font-mono hover:bg-surface-container-high hover:text-primary border border-outline/10 hover:border-primary/30 transition-all active:scale-95 cursor-pointer"
+              className={`flex items-center justify-center h-10 rounded-lg bg-surface-container text-on-surface text-[13px] font-mono hover:bg-surface-container-high hover:text-primary border transition-all active:scale-95 cursor-pointer ${
+                activeTab === 'trig' && i % 3 === 0
+                  ? 'border-outline/20'
+                  : 'border-outline/10'
+              } hover:border-primary/30`}
               title={sym.insert}
             >
               {sym.display}

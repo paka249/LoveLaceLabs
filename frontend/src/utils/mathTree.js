@@ -100,7 +100,25 @@ export function serializeNodeArray(nodes) {
             .join(',');
           return `[${serializedRow}]`;
         });
+        if (node.vector) {
+          return rows[0] || '[0]';
+        }
         return `matrix(${rows.join(',')})`;
+      }
+      if (node.type === 'matrixOp') {
+        const arg = serializeNodeArray(node.arg);
+        const fn = { det: 'determinant', transpose: 'transpose', invert: 'invert', rank: 'rank', trace: 'trace' }[node.op] ?? node.op;
+        return `${fn}(${arg})`;
+      }
+      if (node.type === 'matrixOp2') {
+        const a = serializeNodeArray(node.a);
+        const b = serializeNodeArray(node.b);
+        if (node.op === 'add') return `(${a})+(${b})`;
+        if (node.op === 'sub') return `(${a})-(${b})`;
+        if (node.op === 'mul') return `(${a})*(${b})`;
+        if (node.op === 'dot') return `dot(${a},${b})`;
+        if (node.op === 'cross') return `cross(${a},${b})`;
+        return '';
       }
       return '';
     })
@@ -156,11 +174,21 @@ function getInitialFocusNodeId(node) {
   if (node.type === 'matrix') {
     return node.rows?.[0]?.[0]?.[0]?.id ?? null;
   }
+  if (node.type === 'matrixOp') {
+    return getInitialFocusNodeId(node.arg[0]);
+  }
+  if (node.type === 'matrixOp2') {
+    return getInitialFocusNodeId(node.a[0]);
+  }
   return null;
 }
 
 export function createInitialNode(spec) {
-  const { type, func = 'sin', callName = null, exponent = '', degree = 'n', base = '', rows = 2, cols = 2 } = normalizeTemplateSpec(spec);
+  const {
+    type, func = 'sin', callName = null, exponent = '', degree = 'n', base = '',
+    rows = 2, cols = 2, vector = false, op,
+    argRows = 2, argCols = 2, aRows = 2, aCols = 2, bRows = 2, bCols = 2,
+  } = normalizeTemplateSpec(spec);
   const id = generateId();
   if (type === 'fraction') {
     return {
@@ -280,12 +308,31 @@ export function createInitialNode(spec) {
     };
   }
   if (type === 'matrix') {
+    const effectiveRows = vector ? 1 : Math.max(1, rows);
     return {
       type,
       id,
-      rows: Array.from({ length: Math.max(1, rows) }, () =>
+      vector,
+      rows: Array.from({ length: effectiveRows }, () =>
         Array.from({ length: Math.max(1, cols) }, () => [{ type: 'text', value: '', id: generateId() }])
       ),
+    };
+  }
+  if (type === 'matrixOp') {
+    return {
+      type,
+      id,
+      op: op ?? 'det',
+      arg: [createInitialNode({ type: 'matrix', rows: argRows, cols: argCols })],
+    };
+  }
+  if (type === 'matrixOp2') {
+    return {
+      type,
+      id,
+      op: op ?? 'add',
+      a: [createInitialNode({ type: 'matrix', rows: aRows, cols: aCols, vector })],
+      b: [createInitialNode({ type: 'matrix', rows: bRows, cols: bCols, vector })],
     };
   }
   throw new Error(`Unknown node type: ${type}`);
@@ -516,6 +563,23 @@ export function insertTemplateAtTextNode(nodes, targetId, caretPos, templateType
           }
         }
       }
+    } else if (node.type === 'matrixOp') {
+      const res = insertTemplateAtTextNode(node.arg, targetId, caretPos, templateType);
+      if (res) {
+        const newNodes = [...nodes];
+        newNodes[i] = { ...node, arg: res.updatedNodes };
+        return { updatedNodes: newNodes, focusNodeId: res.focusNodeId };
+      }
+    } else if (node.type === 'matrixOp2') {
+      const fields = ['a', 'b'];
+      for (const field of fields) {
+        const res = insertTemplateAtTextNode(node[field], targetId, caretPos, templateType);
+        if (res) {
+          const newNodes = [...nodes];
+          newNodes[i] = { ...node, [field]: res.updatedNodes };
+          return { updatedNodes: newNodes, focusNodeId: res.focusNodeId };
+        }
+      }
     }
   }
 
@@ -600,6 +664,15 @@ export function findParentArrayAndIndex(nodes, targetId) {
           const res = findParentArrayAndIndex(cell, targetId);
           if (res) return res;
         }
+      }
+    } else if (node.type === 'matrixOp') {
+      const res = findParentArrayAndIndex(node.arg, targetId);
+      if (res) return res;
+    } else if (node.type === 'matrixOp2') {
+      const fields = ['a', 'b'];
+      for (const field of fields) {
+        const res = findParentArrayAndIndex(node[field], targetId);
+        if (res) return res;
       }
     }
   }
@@ -746,6 +819,23 @@ export function findParentTemplateOfArray(nodes, targetId) {
           if (res) return res;
         }
       }
+    } else if (node.type === 'matrixOp') {
+      if (node.arg.some((n) => n.id === targetId)) {
+        return { parentTemplate: node, fieldName: 'arg' };
+      }
+      const argRes = findParentTemplateOfArray(node.arg, targetId);
+      if (argRes) return argRes;
+    } else if (node.type === 'matrixOp2') {
+      const fields = ['a', 'b'];
+      for (const field of fields) {
+        if (node[field].some((n) => n.id === targetId)) {
+          return { parentTemplate: node, fieldName: field };
+        }
+      }
+      for (const field of fields) {
+        const res = findParentTemplateOfArray(node[field], targetId);
+        if (res) return res;
+      }
     }
   }
 
@@ -808,7 +898,9 @@ export function deleteTemplateAtTextNodeStart(tree, targetId) {
     ((parentTemplate.type === 'integral' || parentTemplate.type === 'derivative') && fieldName === 'expr') ||
     ((parentTemplate.type === 'derivativeN' || parentTemplate.type === 'partial' || parentTemplate.type === 'partialN') && fieldName === 'expr') ||
     (parentTemplate.type === 'trigFunction' && fieldName === 'arg') ||
-    (parentTemplate.type === 'matrix' && fieldName === 'cell:0:0');
+    (parentTemplate.type === 'matrix' && fieldName === 'cell:0:0') ||
+    (parentTemplate.type === 'matrixOp' && fieldName === 'arg') ||
+    (parentTemplate.type === 'matrixOp2' && fieldName === 'a');
 
   if (!isFirstField) {
     let prevFieldName = null;
@@ -831,6 +923,8 @@ export function deleteTemplateAtTextNodeStart(tree, targetId) {
     } else if (parentTemplate.type === 'derivativeN' || parentTemplate.type === 'partialN') {
       if (fieldName === 'variable') prevFieldName = 'order';
       else if (fieldName === 'expr') prevFieldName = 'variable';
+    } else if (parentTemplate.type === 'matrixOp2') {
+      if (fieldName === 'b') prevFieldName = 'a';
     } else if (parentTemplate.type === 'matrix' && fieldName.startsWith('cell:')) {
       const [, rowText, colText] = fieldName.split(':');
       const rowIndex = Number.parseInt(rowText, 10);
@@ -987,6 +1081,11 @@ export function getFlatTextNodes(nodes) {
             traverse(cell);
           }
         }
+      } else if (node.type === 'matrixOp') {
+        traverse(node.arg);
+      } else if (node.type === 'matrixOp2') {
+        traverse(node.a);
+        traverse(node.b);
       }
     }
   }

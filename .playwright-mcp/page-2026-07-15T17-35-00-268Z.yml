@@ -1,0 +1,62 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "LovelaceLabs logo" [ref=e6]
+      - heading "LovelaceLabs" [level=1] [ref=e7]
+    - navigation [ref=e8]:
+      - generic [ref=e9]:
+        - paragraph [ref=e10]: Workspace
+        - link "Calculator Calculator" [ref=e11] [cursor=pointer]:
+          - /url: "#"
+          - img "Calculator" [ref=e12]
+          - generic [ref=e13]: Calculator
+        - link "Calculus Calculus" [ref=e14] [cursor=pointer]:
+          - /url: "#"
+          - img "Calculus" [ref=e15]
+          - generic [ref=e16]: Calculus
+        - link "Linear Algebra Linear Algebra" [ref=e17] [cursor=pointer]:
+          - /url: "#"
+          - img "Linear Algebra" [ref=e18]
+          - generic [ref=e19]: Linear Algebra
+        - link "Statistics Statistics" [ref=e20] [cursor=pointer]:
+          - /url: "#"
+          - img "Statistics" [ref=e21]
+          - generic [ref=e22]: Statistics
+        - link "Library Library" [ref=e23] [cursor=pointer]:
+          - /url: "#"
+          - img "Library" [ref=e24]
+          - generic [ref=e25]: Library
+        - link "Finance Finance" [ref=e26] [cursor=pointer]:
+          - /url: "#"
+          - img "Finance" [ref=e27]
+          - generic [ref=e28]: Finance
+        - link "Graph Graph" [ref=e29] [cursor=pointer]:
+          - /url: "#"
+          - img "Graph" [ref=e30]
+          - generic [ref=e31]: Graph
+    - generic [ref=e32]:
+      - link "Settings Settings" [ref=e33] [cursor=pointer]:
+        - /url: "#"
+        - img "Settings" [ref=e34]
+        - generic [ref=e35]: Settings
+      - link "Support Support" [ref=e36] [cursor=pointer]:
+        - /url: "#"
+        - img "Support" [ref=e37]
+        - generic [ref=e38]: Support
+      - button "Collapse" [ref=e39] [cursor=pointer]
+  - main [ref=e43]:
+    - generic [ref=e47]:
+      - button "UPGRADE TO PRO" [ref=e48] [cursor=pointer]
+      - img "Account" [ref=e51] [cursor=pointer]
+    - generic [ref=e53]:
+      - generic [ref=e54]:
+        - heading "Analytical Engine" [level=2] [ref=e55]
+        - paragraph [ref=e56]: Enter symbolic expressions, natural language queries, or data streams.
+      - generic [ref=e58]:
+        - button [ref=e59] [cursor=pointer]:
+          - img "calculator" [ref=e60]
+        - textbox "integrate log(x)^2 from 0 to 1..." [ref=e61]
+        - generic [ref=e62]:
+          - button "clear" [ref=e63] [cursor=pointer]
+          - button [ref=e64] [cursor=pointer]:
+            - img "submit" [ref=e65]

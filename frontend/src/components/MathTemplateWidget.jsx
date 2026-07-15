@@ -754,5 +754,109 @@ export default function MathTemplateWidget({
     );
   }
 
+  if (node.type === 'matrixOp') {
+    const fieldProps = {
+      nodes: node.arg,
+      onChange: (updated) => onChange({ ...node, arg: updated }),
+      activeNodeId,
+      activeCaret,
+      onFocusNode,
+      onNavigateLeft,
+      onNavigateRight,
+      onNavigateUp,
+      onNavigateDown,
+      onBackspaceAtStart,
+      onSubmit,
+      onStartFraction,
+      onStartPower,
+      size,
+    };
+
+    if (node.op === 'det') {
+      return (
+        <div className="inline-flex items-center gap-0.5 align-middle mx-0.5">
+          <span className="text-primary/80 text-2xl font-mono leading-none select-none">|</span>
+          <MathExpressionField {...fieldProps} />
+          <span className="text-primary/80 text-2xl font-mono leading-none select-none">|</span>
+        </div>
+      );
+    }
+
+    if (node.op === 'transpose' || node.op === 'invert') {
+      const sup = node.op === 'transpose' ? 'ᵀ' : '⁻¹';
+      return (
+        <div className="inline-flex items-start gap-0 align-middle mx-0.5">
+          <MathExpressionField {...fieldProps} />
+          <span className="text-primary/70 text-xs font-mono select-none">{sup}</span>
+        </div>
+      );
+    }
+
+    const label = { rank: 'rank', trace: 'tr' }[node.op] ?? node.op;
+    return (
+      <div className="inline-flex items-center gap-0.5 align-middle mx-0.5">
+        <span className="text-primary/80 text-sm font-mono select-none">{label}(</span>
+        <MathExpressionField {...fieldProps} />
+        <span className="text-primary/80 text-sm font-mono select-none">)</span>
+      </div>
+    );
+  }
+
+  if (node.type === 'matrixOp2') {
+    const fieldPropsA = {
+      nodes: node.a,
+      onChange: (updated) => onChange({ ...node, a: updated }),
+      activeNodeId,
+      activeCaret,
+      onFocusNode,
+      onNavigateLeft,
+      onNavigateRight,
+      onNavigateUp,
+      onNavigateDown,
+      onBackspaceAtStart,
+      onSubmit,
+      onStartFraction,
+      onStartPower,
+      size,
+    };
+    const fieldPropsB = {
+      nodes: node.b,
+      onChange: (updated) => onChange({ ...node, b: updated }),
+      activeNodeId,
+      activeCaret,
+      onFocusNode,
+      onNavigateLeft,
+      onNavigateRight,
+      onNavigateUp,
+      onNavigateDown,
+      onBackspaceAtStart,
+      onSubmit,
+      onStartFraction,
+      onStartPower,
+      size,
+    };
+
+    const infixGlyph = { add: '+', sub: '−', mul: '×' }[node.op];
+    if (infixGlyph) {
+      return (
+        <div className="inline-flex items-center gap-1.5 align-middle mx-0.5">
+          <MathExpressionField {...fieldPropsA} />
+          <span className="text-primary/80 text-base font-mono select-none">{infixGlyph}</span>
+          <MathExpressionField {...fieldPropsB} />
+        </div>
+      );
+    }
+
+    return (
+      <div className="inline-flex items-center gap-0.5 align-middle mx-0.5">
+        <span className="text-primary/80 text-sm font-mono select-none">{node.op}(</span>
+        <MathExpressionField {...fieldPropsA} />
+        <span className="text-primary/80 text-sm font-mono select-none">,</span>
+        <MathExpressionField {...fieldPropsB} />
+        <span className="text-primary/80 text-sm font-mono select-none">)</span>
+      </div>
+    );
+  }
+
   return null;
 }

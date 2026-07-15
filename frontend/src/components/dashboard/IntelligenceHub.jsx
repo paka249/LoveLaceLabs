@@ -261,6 +261,8 @@ export default function IntelligenceHub() {
     if (node.type === 'derivativeN' || node.type === 'partial' || node.type === 'partialN') return node.expr[0].id;
     if (node.type === 'trigFunction') return node.arg[0].id;
     if (node.type === 'matrix') return node.rows?.[0]?.[0]?.[0]?.id ?? null;
+    if (node.type === 'matrixOp') return getTemplateFocusNodeId(node.arg[0]);
+    if (node.type === 'matrixOp2') return getTemplateFocusNodeId(node.a[0]);
     return null;
   }
 
@@ -512,6 +514,56 @@ export default function IntelligenceHub() {
       const rows = Number.parseInt(rowsText, 10) || 2;
       const cols = Number.parseInt(colsText, 10) || 2;
       startTemplate({ type: 'matrix', rows, cols });
+      return;
+    }
+
+    if (text === '__MATRIX_DET_TEMPLATE__') {
+      startTemplate({ type: 'matrixOp', op: 'det' });
+      return;
+    }
+
+    if (text === '__MATRIX_TRANSPOSE_TEMPLATE__') {
+      startTemplate({ type: 'matrixOp', op: 'transpose' });
+      return;
+    }
+
+    if (text === '__MATRIX_INVERT_TEMPLATE__') {
+      startTemplate({ type: 'matrixOp', op: 'invert' });
+      return;
+    }
+
+    if (text === '__MATRIX_RANK_TEMPLATE__') {
+      startTemplate({ type: 'matrixOp', op: 'rank' });
+      return;
+    }
+
+    if (text === '__MATRIX_TRACE_TEMPLATE__') {
+      startTemplate({ type: 'matrixOp', op: 'trace' });
+      return;
+    }
+
+    if (text === '__MATRIX_ADD_TEMPLATE__') {
+      startTemplate({ type: 'matrixOp2', op: 'add' });
+      return;
+    }
+
+    if (text === '__MATRIX_SUB_TEMPLATE__') {
+      startTemplate({ type: 'matrixOp2', op: 'sub' });
+      return;
+    }
+
+    if (text === '__MATRIX_MUL_TEMPLATE__') {
+      startTemplate({ type: 'matrixOp2', op: 'mul' });
+      return;
+    }
+
+    if (text === '__MATRIX_DOT_TEMPLATE__') {
+      startTemplate({ type: 'matrixOp2', op: 'dot', vector: true, aRows: 1, aCols: 3, bRows: 1, bCols: 3 });
+      return;
+    }
+
+    if (text === '__MATRIX_CROSS_TEMPLATE__') {
+      startTemplate({ type: 'matrixOp2', op: 'cross', vector: true, aRows: 1, aCols: 3, bRows: 1, bCols: 3 });
       return;
     }
 
