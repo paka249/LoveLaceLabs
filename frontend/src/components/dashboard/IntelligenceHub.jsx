@@ -13,6 +13,7 @@ import {
   getFlatTextNodes,
   findParentArrayAndIndex,
   findParentTemplateOfArray,
+  validateMatrixTree,
 } from '../../utils/mathTree';
 
 const SUPER_MAP = {
@@ -239,6 +240,12 @@ export default function IntelligenceHub() {
 
   async function compute() {
     if (templateFields) {
+      const validation = validateMatrixTree(templateFields);
+      if (!validation.valid) {
+        showError(validation.error);
+        return;
+      }
+
       const expression = serializeNodeArray(templateFields);
       setQuery(expression);
       applyResult(await evaluate(expression, angleMode));
@@ -731,7 +738,7 @@ export default function IntelligenceHub() {
           </button>
 
           {templateFields && (
-            <div className="flex-1 flex items-center gap-3">
+            <div className="flex-1 min-w-0 flex items-center gap-3">
               <MathExpressionField
                 nodes={templateFields}
                 onChange={(updated) => {

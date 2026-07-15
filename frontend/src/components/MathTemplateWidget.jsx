@@ -887,13 +887,12 @@ export default function MathTemplateWidget({
       size,
     };
 
+    const opGlyph = node.op === 'cross' ? '×' : '·';
     return (
-      <div className="inline-flex items-center gap-0.5 align-middle mx-0.5">
-        <span className="text-primary/80 text-sm font-mono select-none">{node.op}(</span>
+      <div className="inline-flex items-center gap-1.5 align-middle mx-0.5">
         <MathExpressionField {...fieldPropsA} />
-        <span className="text-primary/80 text-sm font-mono select-none">,</span>
+        <span className="text-primary/80 text-base font-mono select-none">{opGlyph}</span>
         <MathExpressionField {...fieldPropsB} />
-        <span className="text-primary/80 text-sm font-mono select-none">)</span>
       </div>
     );
   }

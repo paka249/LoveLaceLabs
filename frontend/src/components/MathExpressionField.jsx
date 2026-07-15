@@ -41,7 +41,7 @@ export default function MathExpressionField({
   return (
     <div
       className={`flex items-center flex-wrap gap-y-2 ${
-        isRoot ? 'w-full min-h-[50px] p-2' : 'inline-flex align-middle'
+        isRoot ? 'w-full min-w-0 min-h-[50px] p-2 overflow-x-auto' : 'inline-flex align-middle'
       }`}
     >
       {nodes.map((node) => {

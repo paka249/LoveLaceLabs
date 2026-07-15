@@ -356,6 +356,135 @@ export function removeMatrixColumn(node) {
   return { ...node, rows: node.rows.map((row) => row.slice(0, -1)) };
 }
 
+const NUMERIC_CELL_PATTERN = /^-?\d+(\.\d+)?$/;
+
+function matrixCellText(cellNodes) {
+  return (cellNodes || [])
+    .filter((n) => n.type === 'text')
+    .map((n) => n.value)
+    .join('')
+    .trim();
+}
+
+function matrixDims(matrixNode) {
+  return { rows: matrixNode.rows.length, cols: matrixNode.rows[0]?.length ?? 0 };
+}
+
+function checkMatrixIsNumeric(matrixNode) {
+  for (const row of matrixNode.rows) {
+    for (const cell of row) {
+      if (!NUMERIC_CELL_PATTERN.test(matrixCellText(cell))) {
+        return 'Matrix entries must be plain numbers.';
+      }
+    }
+  }
+  return null;
+}
+
+const SQUARE_ONLY_OPS = {
+  det: 'determinant',
+  invert: 'inverse',
+  rank: 'rank',
+  trace: 'trace',
+};
+
+/**
+ * Walks a template tree and checks matrix entries are plain numbers and that
+ * matrix/vector operations (multiply, add, subtract, det, invert, rank, trace,
+ * dot, cross) have dimension-compatible operands.
+ */
+export function validateMatrixTree(nodes) {
+  let error = null;
+
+  function fail(message) {
+    error = message;
+  }
+
+  function walk(list) {
+    if (error || !Array.isArray(list)) return;
+
+    for (let i = 0; i < list.length && !error; i += 1) {
+      const node = list[i];
+
+      if (node.type === 'matrix') {
+        const numericError = checkMatrixIsNumeric(node);
+        if (numericError) {
+          fail(numericError);
+          return;
+        }
+
+        const opNode = list[i + 1];
+        const nextMatrix = list[i + 2];
+        if (
+          opNode?.type === 'text' &&
+          nextMatrix?.type === 'matrix' &&
+          /^[+\-×*]$/.test(opNode.value.trim())
+        ) {
+          const op = opNode.value.trim();
+          const a = matrixDims(node);
+          const b = matrixDims(nextMatrix);
+          if (op === '+' || op === '-') {
+            if (a.rows !== b.rows || a.cols !== b.cols) {
+              fail(
+                `Matrix dimensions must match for ${op === '+' ? 'addition' : 'subtraction'} ` +
+                `(${a.rows}×${a.cols} vs ${b.rows}×${b.cols}).`
+              );
+              return;
+            }
+          } else if (a.cols !== b.rows) {
+            fail(
+              `Matrix dimensions incompatible for multiplication: columns of the first matrix (${a.cols}) ` +
+              `must match rows of the second (${b.rows}).`
+            );
+            return;
+          }
+        }
+      } else if (node.type === 'matrixOp') {
+        const numericError = checkMatrixIsNumeric(node.arg[0]);
+        if (numericError) {
+          fail(numericError);
+          return;
+        }
+        if (SQUARE_ONLY_OPS[node.op]) {
+          const { rows, cols } = matrixDims(node.arg[0]);
+          if (rows !== cols) {
+            fail(`Matrix must be square to compute its ${SQUARE_ONLY_OPS[node.op]} (got ${rows}×${cols}).`);
+            return;
+          }
+        }
+      } else if (node.type === 'matrixOp2') {
+        const numericErrorA = checkMatrixIsNumeric(node.a[0]);
+        if (numericErrorA) {
+          fail(numericErrorA);
+          return;
+        }
+        const numericErrorB = checkMatrixIsNumeric(node.b[0]);
+        if (numericErrorB) {
+          fail(numericErrorB);
+          return;
+        }
+        const aLen = node.a[0].rows[0]?.length ?? 0;
+        const bLen = node.b[0].rows[0]?.length ?? 0;
+        if (aLen !== bLen) {
+          fail(`Vectors must be the same length for the ${node.op} product (got ${aLen} and ${bLen}).`);
+          return;
+        }
+        if (node.op === 'cross' && aLen !== 3) {
+          fail('Cross product requires 3-dimensional vectors.');
+          return;
+        }
+      } else {
+        for (const key of Object.keys(node)) {
+          if (Array.isArray(node[key])) walk(node[key]);
+        }
+      }
+    }
+  }
+
+  walk(nodes);
+  return error ? { valid: false, error } : { valid: true };
+}
+
 function unwrapParens(str) {
   const trimmed = str.trim();
   if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
