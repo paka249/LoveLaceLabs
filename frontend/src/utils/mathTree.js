@@ -338,6 +338,29 @@ export function createInitialNode(spec) {
   throw new Error(`Unknown node type: ${type}`);
 }
 
+export function addMatrixRow(node) {
+  const cols = node.rows[0]?.length ?? 1;
+  const newRow = Array.from({ length: cols }, () => [{ type: 'text', value: '', id: generateId() }]);
+  return { ...node, rows: [...node.rows, newRow] };
+}
+
+export function removeMatrixRow(node) {
+  if (node.rows.length <= 1) return node;
+  return { ...node, rows: node.rows.slice(0, -1) };
+}
+
+export function addMatrixColumn(node) {
+  return {
+    ...node,
+    rows: node.rows.map((row) => [...row, [{ type: 'text', value: '', id: generateId() }]]),
+  };
+}
+
+export function removeMatrixColumn(node) {
+  if ((node.rows[0]?.length ?? 1) <= 1) return node;
+  return { ...node, rows: node.rows.map((row) => row.slice(0, -1)) };
+}
+
 function unwrapParens(str) {
   const trimmed = str.trim();
   if (trimmed.startsWith('(') && trimmed.endsWith(')')) {

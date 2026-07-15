@@ -1,4 +1,8 @@
 import MathExpressionField from './MathExpressionField';
+import { addMatrixRow, removeMatrixRow, addMatrixColumn, removeMatrixColumn } from '../utils/mathTree';
+
+const resizeBtnClass =
+  'w-4 h-4 flex items-center justify-center text-[10px] leading-none rounded text-on-surface-variant hover:text-primary hover:bg-surface-container-high disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-on-surface-variant cursor-pointer';
 
 /**
  * MathTemplateWidget
@@ -713,43 +717,90 @@ export default function MathTemplateWidget({
   }
 
   if (node.type === 'matrix') {
+    const rowCount = node.rows.length;
+    const colCount = node.rows[0]?.length ?? 1;
+
     return (
-      <div className="inline-flex items-center gap-1.5 align-middle mx-1 rounded-lg border border-primary/20 bg-surface-container-low/30 px-2 py-1">
-        <span className="text-primary text-3xl leading-none font-mono select-none">[</span>
-        <div className="flex flex-col gap-1">
-          {node.rows.map((row, rowIdx) => (
-            <div key={`row-${rowIdx}`} className="flex items-center gap-1">
-              {row.map((cell, colIdx) => (
-                <div key={`cell-${rowIdx}-${colIdx}`} className="min-w-[2.25rem]">
-                  <MathExpressionField
-                    nodes={cell}
-                    onChange={(updated) => {
-                      const nextRows = node.rows.map((r, rIndex) =>
-                        rIndex === rowIdx
-                          ? r.map((c, cIndex) => (cIndex === colIdx ? updated : c))
-                          : r
-                      );
-                      onChange({ ...node, rows: nextRows });
-                    }}
-                    activeNodeId={activeNodeId}
-                    activeCaret={activeCaret}
-                    onFocusNode={onFocusNode}
-                    onNavigateLeft={onNavigateLeft}
-                    onNavigateRight={onNavigateRight}
-                    onNavigateUp={onNavigateUp}
-                    onNavigateDown={onNavigateDown}
-                    onBackspaceAtStart={onBackspaceAtStart}
-                    onSubmit={onSubmit}
-                    onStartFraction={onStartFraction}
-                    onStartPower={onStartPower}
-                    size="xs"
-                  />
-                </div>
-              ))}
-            </div>
-          ))}
+      <div className="inline-flex items-start gap-0.5 align-middle mx-1">
+        <div className="inline-flex items-center gap-1.5 rounded-lg border border-primary/20 bg-surface-container-low/30 px-2 py-1">
+          <span className="text-primary text-3xl leading-none font-mono select-none">[</span>
+          <div className="flex flex-col gap-1">
+            {node.rows.map((row, rowIdx) => (
+              <div key={`row-${rowIdx}`} className="flex items-center gap-1">
+                {row.map((cell, colIdx) => (
+                  <div key={`cell-${rowIdx}-${colIdx}`} className="min-w-[2.25rem]">
+                    <MathExpressionField
+                      nodes={cell}
+                      onChange={(updated) => {
+                        const nextRows = node.rows.map((r, rIndex) =>
+                          rIndex === rowIdx
+                            ? r.map((c, cIndex) => (cIndex === colIdx ? updated : c))
+                            : r
+                        );
+                        onChange({ ...node, rows: nextRows });
+                      }}
+                      activeNodeId={activeNodeId}
+                      activeCaret={activeCaret}
+                      onFocusNode={onFocusNode}
+                      onNavigateLeft={onNavigateLeft}
+                      onNavigateRight={onNavigateRight}
+                      onNavigateUp={onNavigateUp}
+                      onNavigateDown={onNavigateDown}
+                      onBackspaceAtStart={onBackspaceAtStart}
+                      onSubmit={onSubmit}
+                      onStartFraction={onStartFraction}
+                      onStartPower={onStartPower}
+                      size="xs"
+                    />
+                  </div>
+                ))}
+              </div>
+            ))}
+            {!node.vector && (
+              <div className="flex items-center justify-center gap-1 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => onChange(removeMatrixRow(node))}
+                  disabled={rowCount <= 1}
+                  title="Remove row"
+                  className={resizeBtnClass}
+                >
+                  −
+                </button>
+                <span className="text-[9px] text-on-surface-variant/60 select-none">rows</span>
+                <button
+                  type="button"
+                  onClick={() => onChange(addMatrixRow(node))}
+                  title="Add row"
+                  className={resizeBtnClass}
+                >
+                  +
+                </button>
+              </div>
+            )}
+          </div>
+          <span className="text-primary text-3xl leading-none font-mono select-none">]</span>
         </div>
-        <span className="text-primary text-3xl leading-none font-mono select-none">]</span>
+        <div className="flex flex-col items-center gap-0.5 pt-1">
+          <button
+            type="button"
+            onClick={() => onChange(addMatrixColumn(node))}
+            title="Add column"
+            className={resizeBtnClass}
+          >
+            +
+          </button>
+          <span className="text-[9px] text-on-surface-variant/60 select-none [writing-mode:vertical-lr]">cols</span>
+          <button
+            type="button"
+            onClick={() => onChange(removeMatrixColumn(node))}
+            disabled={colCount <= 1}
+            title="Remove column"
+            className={resizeBtnClass}
+          >
+            −
+          </button>
+        </div>
       </div>
     );
   }
