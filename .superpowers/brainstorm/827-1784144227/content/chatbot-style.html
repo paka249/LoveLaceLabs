@@ -1,0 +1,117 @@
+<h2>Which personality/style fits the chatbot?</h2>
+<p class="subtitle">Each option shows the closed bubble (left side of screen) and a peek of the open chat panel, using your app's actual dark navy + mint palette.</p>
+
+<style>
+  .lab-stage {
+    position: relative;
+    height: 220px;
+    border-radius: 12px;
+    background: #051424;
+    background-image:
+      linear-gradient(rgba(52,211,153,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(52,211,153,0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    border: 1px solid rgba(133,148,139,0.2);
+  }
+  .lab-bubble {
+    position: absolute;
+    left: 14px;
+    top: 14px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 0 18px rgba(52,211,153,0.35);
+  }
+  .lab-panel {
+    position: absolute;
+    left: 14px;
+    top: 76px;
+    width: 150px;
+    height: 118px;
+    border-radius: 10px;
+    padding: 8px;
+    font-size: 10px;
+    color: #d4e4fa;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  .lab-panel .row { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+  .lab-panel .dot { width:16px; height:16px; border-radius:50%; flex-shrink:0; }
+  .lab-panel .bubble-msg { background: rgba(255,255,255,0.06); border-radius: 6px; padding: 4px 6px; }
+  .lab-panel .bubble-msg.me { background: rgba(90,240,179,0.15); margin-left: 20px; }
+
+  /* A: Minimal Orb */
+  .orb-bubble { background: radial-gradient(circle at 35% 30%, #6ffcc0, #1f9e6e); }
+  .orb-panel { background: rgba(13,28,45,0.75); backdrop-filter: blur(6px); border: 1px solid rgba(90,240,179,0.3); }
+  .orb-panel .dot { background: radial-gradient(circle at 35% 30%, #6ffcc0, #1f9e6e); }
+
+  /* B: Mascot */
+  .mascot-bubble { background: #122131; border: 2px solid #5af0b3; }
+  .mascot-bubble::after { content: '◕‿◕'; font-size: 13px; color:#5af0b3; }
+  .mascot-panel { background: rgba(13,28,45,0.9); border: 1px solid rgba(90,240,179,0.25); border-radius: 14px; }
+  .mascot-panel .dot { background: #122131; border: 2px solid #5af0b3; display:flex; align-items:center; justify-content:center; font-size:7px; color:#5af0b3; }
+
+  /* C: Terminal chip */
+  .term-bubble { background: #010f1f; border: 1px solid #5af0b3; border-radius: 10px; font-family: monospace; color: #5af0b3; font-size:11px; }
+  .term-panel { background: #010f1f; border: 1px solid rgba(90,240,179,0.4); font-family: monospace; }
+  .term-panel .dot { border-radius: 3px; background: #010f1f; border: 1px solid #5af0b3; }
+  .term-panel .bubble-msg { background: rgba(90,240,179,0.06); border-radius: 2px; border-left: 2px solid #5af0b3; }
+  .term-panel .bubble-msg.me { background: rgba(90,240,179,0.12); border-left: 2px solid #d4e4fa; }
+</style>
+
+<div class="cards">
+  <div class="card" data-choice="orb" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="lab-stage">
+        <div class="lab-bubble orb-bubble">✦</div>
+        <div class="lab-panel orb-panel">
+          <div class="row"><div class="dot"></div><div class="bubble-msg">Need help with derivatives?</div></div>
+          <div class="row"><div class="bubble-msg me">show me steps</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Minimal Orb</h3>
+      <p>Glowing glass orb, closest to your current "computational engine" look. Calm, professional, ambient pulse when it has something to say. Least visual novelty, most cohesive.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="mascot" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="lab-stage">
+        <div class="lab-bubble mascot-bubble"></div>
+        <div class="lab-panel mascot-panel">
+          <div class="row"><div class="dot">◕‿◕</div><div class="bubble-msg">Need help with derivatives?</div></div>
+          <div class="row"><div class="bubble-msg me">show me steps</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Friendly Mascot</h3>
+      <p>Small character face in the bubble, rounded chat bubbles. More approachable/fun for a homework-helper aimed at students, at the cost of being a bit less "serious tool."</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="terminal" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="lab-stage">
+        <div class="lab-bubble term-bubble">&gt;_</div>
+        <div class="lab-panel term-panel">
+          <div class="row"><div class="dot">&gt;_</div><div class="bubble-msg">Need help with derivatives?</div></div>
+          <div class="row"><div class="bubble-msg me">show me steps</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Terminal Companion</h3>
+      <p>Monospace, console-chip aesthetic leaning hard into the "computational engine" / JetBrains Mono branding already used for matrices and formulas. Sharp corners, no rounded friendliness.</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle">Click one to select — or describe a mix (e.g. "orb bubble, terminal-style panel").</p>
