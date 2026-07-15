@@ -712,5 +712,47 @@ export default function MathTemplateWidget({
     );
   }
 
+  if (node.type === 'matrix') {
+    return (
+      <div className="inline-flex items-center gap-1.5 align-middle mx-1 rounded-lg border border-primary/20 bg-surface-container-low/30 px-2 py-1">
+        <span className="text-primary text-3xl leading-none font-mono select-none">[</span>
+        <div className="flex flex-col gap-1">
+          {node.rows.map((row, rowIdx) => (
+            <div key={`row-${rowIdx}`} className="flex items-center gap-1">
+              {row.map((cell, colIdx) => (
+                <div key={`cell-${rowIdx}-${colIdx}`} className="min-w-[2.25rem]">
+                  <MathExpressionField
+                    nodes={cell}
+                    onChange={(updated) => {
+                      const nextRows = node.rows.map((r, rIndex) =>
+                        rIndex === rowIdx
+                          ? r.map((c, cIndex) => (cIndex === colIdx ? updated : c))
+                          : r
+                      );
+                      onChange({ ...node, rows: nextRows });
+                    }}
+                    activeNodeId={activeNodeId}
+                    activeCaret={activeCaret}
+                    onFocusNode={onFocusNode}
+                    onNavigateLeft={onNavigateLeft}
+                    onNavigateRight={onNavigateRight}
+                    onNavigateUp={onNavigateUp}
+                    onNavigateDown={onNavigateDown}
+                    onBackspaceAtStart={onBackspaceAtStart}
+                    onSubmit={onSubmit}
+                    onStartFraction={onStartFraction}
+                    onStartPower={onStartPower}
+                    size="xs"
+                  />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+        <span className="text-primary text-3xl leading-none font-mono select-none">]</span>
+      </div>
+    );
+  }
+
   return null;
 }

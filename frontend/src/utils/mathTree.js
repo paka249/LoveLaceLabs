@@ -90,6 +90,18 @@ export function serializeNodeArray(nodes) {
         const arg = serializeNodeArray(node.arg);
         return `${node.callName ?? node.func}(${arg})`;
       }
+      if (node.type === 'matrix') {
+        const rows = (node.rows || []).map((row) => {
+          const serializedRow = row
+            .map((cell) => {
+              const value = serializeNodeArray(cell).trim();
+              return value || '0';
+            })
+            .join(',');
+          return `[${serializedRow}]`;
+        });
+        return `matrix(${rows.join(',')})`;
+      }
       return '';
     })
     .join('');
@@ -141,11 +153,14 @@ function getInitialFocusNodeId(node) {
   if (node.type === 'trigFunction') {
     return node.arg[0].id;
   }
+  if (node.type === 'matrix') {
+    return node.rows?.[0]?.[0]?.[0]?.id ?? null;
+  }
   return null;
 }
 
 export function createInitialNode(spec) {
-  const { type, func = 'sin', callName = null, exponent = '', degree = 'n', base = '' } = normalizeTemplateSpec(spec);
+  const { type, func = 'sin', callName = null, exponent = '', degree = 'n', base = '', rows = 2, cols = 2 } = normalizeTemplateSpec(spec);
   const id = generateId();
   if (type === 'fraction') {
     return {
@@ -262,6 +277,15 @@ export function createInitialNode(spec) {
       func,
       callName: callName ?? func,
       arg: [{ type: 'text', value: '', id: generateId() }],
+    };
+  }
+  if (type === 'matrix') {
+    return {
+      type,
+      id,
+      rows: Array.from({ length: Math.max(1, rows) }, () =>
+        Array.from({ length: Math.max(1, cols) }, () => [{ type: 'text', value: '', id: generateId() }])
+      ),
     };
   }
   throw new Error(`Unknown node type: ${type}`);
@@ -476,6 +500,22 @@ export function insertTemplateAtTextNode(nodes, targetId, caretPos, templateType
         newNodes[i] = { ...node, arg: res.updatedNodes };
         return { updatedNodes: newNodes, focusNodeId: res.focusNodeId };
       }
+    } else if (node.type === 'matrix') {
+      for (let rowIdx = 0; rowIdx < node.rows.length; rowIdx += 1) {
+        for (let colIdx = 0; colIdx < node.rows[rowIdx].length; colIdx += 1) {
+          const res = insertTemplateAtTextNode(node.rows[rowIdx][colIdx], targetId, caretPos, templateType);
+          if (res) {
+            const newRows = node.rows.map((row, r) =>
+              r === rowIdx
+                ? row.map((cell, c) => (c === colIdx ? res.updatedNodes : cell))
+                : row
+            );
+            const newNodes = [...nodes];
+            newNodes[i] = { ...node, rows: newRows };
+            return { updatedNodes: newNodes, focusNodeId: res.focusNodeId };
+          }
+        }
+      }
     }
   }
 
@@ -554,6 +594,13 @@ export function findParentArrayAndIndex(nodes, targetId) {
     } else if (node.type === 'trigFunction') {
       const res = findParentArrayAndIndex(node.arg, targetId);
       if (res) return res;
+    } else if (node.type === 'matrix') {
+      for (const row of node.rows) {
+        for (const cell of row) {
+          const res = findParentArrayAndIndex(cell, targetId);
+          if (res) return res;
+        }
+      }
     }
   }
 
@@ -684,6 +731,21 @@ export function findParentTemplateOfArray(nodes, targetId) {
       }
       const argRes = findParentTemplateOfArray(node.arg, targetId);
       if (argRes) return argRes;
+    } else if (node.type === 'matrix') {
+      for (let rowIdx = 0; rowIdx < node.rows.length; rowIdx += 1) {
+        for (let colIdx = 0; colIdx < node.rows[rowIdx].length; colIdx += 1) {
+          if (node.rows[rowIdx][colIdx].some((n) => n.id === targetId)) {
+            return { parentTemplate: node, fieldName: `cell:${rowIdx}:${colIdx}` };
+          }
+        }
+      }
+
+      for (const row of node.rows) {
+        for (const cell of row) {
+          const res = findParentTemplateOfArray(cell, targetId);
+          if (res) return res;
+        }
+      }
     }
   }
 
@@ -745,7 +807,8 @@ export function deleteTemplateAtTextNodeStart(tree, targetId) {
     ((parentTemplate.type === 'sigma' || parentTemplate.type === 'product') && fieldName === 'upper') ||
     ((parentTemplate.type === 'integral' || parentTemplate.type === 'derivative') && fieldName === 'expr') ||
     ((parentTemplate.type === 'derivativeN' || parentTemplate.type === 'partial' || parentTemplate.type === 'partialN') && fieldName === 'expr') ||
-    (parentTemplate.type === 'trigFunction' && fieldName === 'arg');
+    (parentTemplate.type === 'trigFunction' && fieldName === 'arg') ||
+    (parentTemplate.type === 'matrix' && fieldName === 'cell:0:0');
 
   if (!isFirstField) {
     let prevFieldName = null;
@@ -768,6 +831,36 @@ export function deleteTemplateAtTextNodeStart(tree, targetId) {
     } else if (parentTemplate.type === 'derivativeN' || parentTemplate.type === 'partialN') {
       if (fieldName === 'variable') prevFieldName = 'order';
       else if (fieldName === 'expr') prevFieldName = 'variable';
+    } else if (parentTemplate.type === 'matrix' && fieldName.startsWith('cell:')) {
+      const [, rowText, colText] = fieldName.split(':');
+      const rowIndex = Number.parseInt(rowText, 10);
+      const colIndex = Number.parseInt(colText, 10);
+
+      if (!Number.isNaN(rowIndex) && !Number.isNaN(colIndex)) {
+        if (colIndex > 0) {
+          const prevCell = parentTemplate.rows[rowIndex][colIndex - 1];
+          const flatPrevCell = getFlatTextNodes(prevCell);
+          const lastTextNode = flatPrevCell[flatPrevCell.length - 1];
+          if (lastTextNode) {
+            return {
+              updatedNodes: tree,
+              focusNodeId: lastTextNode.id,
+              focusCaret: lastTextNode.value.length,
+            };
+          }
+        } else if (rowIndex > 0) {
+          const prevRowLastCell = parentTemplate.rows[rowIndex - 1][parentTemplate.rows[rowIndex - 1].length - 1];
+          const flatPrevCell = getFlatTextNodes(prevRowLastCell);
+          const lastTextNode = flatPrevCell[flatPrevCell.length - 1];
+          if (lastTextNode) {
+            return {
+              updatedNodes: tree,
+              focusNodeId: lastTextNode.id,
+              focusCaret: lastTextNode.value.length,
+            };
+          }
+        }
+      }
     }
 
     if (prevFieldName) {
@@ -888,6 +981,12 @@ export function getFlatTextNodes(nodes) {
         traverse(node.variable);
       } else if (node.type === 'trigFunction') {
         traverse(node.arg);
+      } else if (node.type === 'matrix') {
+        for (const row of node.rows) {
+          for (const cell of row) {
+            traverse(cell);
+          }
+        }
       }
     }
   }

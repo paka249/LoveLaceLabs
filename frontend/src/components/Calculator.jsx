@@ -48,6 +48,14 @@ const EXP_DISPLAY = (
   </span>
 );
 
+const MATRIX_DISPLAY = (
+  <span className="inline-flex items-center gap-0.5 leading-none text-[12px]">
+    <span>[</span>
+    <span className="text-[9px] opacity-75">2x2</span>
+    <span>]</span>
+  </span>
+);
+
 /* ── Symbol sets per tab ── */
 const SYMBOLS = {
   basic: [
@@ -107,7 +115,7 @@ const SYMBOLS = {
     { display: 'y',      insert: 'y' },
   ],
   matrix: [
-    { display: 'M',      insert: 'matrix([1,2],[3,4])' },
+    { display: MATRIX_DISPLAY, insert: '__MATRIX_TEMPLATE__:2x2' },
     { display: 'det',    insert: 'determinant(matrix([1,2],[3,4]))' },
     { display: 'T',      insert: 'transpose(matrix([1,2],[3,4]))' },
     { display: 'M⁻¹',    insert: 'invert(matrix([1,2],[3,4]))' },

@@ -260,6 +260,7 @@ export default function IntelligenceHub() {
     if (node.type === 'integral' || node.type === 'derivative') return node.expr[0].id;
     if (node.type === 'derivativeN' || node.type === 'partial' || node.type === 'partialN') return node.expr[0].id;
     if (node.type === 'trigFunction') return node.arg[0].id;
+    if (node.type === 'matrix') return node.rows?.[0]?.[0]?.[0]?.id ?? null;
     return null;
   }
 
@@ -372,6 +373,19 @@ export default function IntelligenceHub() {
       if (fieldName === 'lower' || fieldName === 'index' || fieldName === 'expr') {
         targetField = 'upper';
       }
+    } else if (parentTemplate.type === 'matrix' && fieldName.startsWith('cell:')) {
+      const [, rowText, colText] = fieldName.split(':');
+      const rowIndex = Number.parseInt(rowText, 10);
+      const colIndex = Number.parseInt(colText, 10);
+      if (!Number.isNaN(rowIndex) && !Number.isNaN(colIndex) && rowIndex > 0) {
+        const targetCell = parentTemplate.rows[rowIndex - 1][colIndex];
+        const firstTextNode = targetCell?.find((n) => n.type === 'text');
+        if (firstTextNode) {
+          setActiveNodeId(firstTextNode.id);
+          setActiveCaret(Math.min(caret, firstTextNode.value.length));
+        }
+      }
+      return;
     }
 
     if (targetField) {
@@ -402,6 +416,19 @@ export default function IntelligenceHub() {
       if (fieldName === 'upper') {
         targetField = 'lower';
       }
+    } else if (parentTemplate.type === 'matrix' && fieldName.startsWith('cell:')) {
+      const [, rowText, colText] = fieldName.split(':');
+      const rowIndex = Number.parseInt(rowText, 10);
+      const colIndex = Number.parseInt(colText, 10);
+      if (!Number.isNaN(rowIndex) && !Number.isNaN(colIndex) && rowIndex < parentTemplate.rows.length - 1) {
+        const targetCell = parentTemplate.rows[rowIndex + 1][colIndex];
+        const firstTextNode = targetCell?.find((n) => n.type === 'text');
+        if (firstTextNode) {
+          setActiveNodeId(firstTextNode.id);
+          setActiveCaret(Math.min(caret, firstTextNode.value.length));
+        }
+      }
+      return;
     }
 
     if (targetField) {
@@ -479,6 +506,15 @@ export default function IntelligenceHub() {
   }
 
   function insertAtCursor(text, cursorOffset = 0) {
+    if (text.startsWith('__MATRIX_TEMPLATE__')) {
+      const [, size = '2x2'] = text.split(':');
+      const [rowsText, colsText] = size.toLowerCase().split('x');
+      const rows = Number.parseInt(rowsText, 10) || 2;
+      const cols = Number.parseInt(colsText, 10) || 2;
+      startTemplate({ type: 'matrix', rows, cols });
+      return;
+    }
+
     if (text === '__SIGMA_TEMPLATE__') {
       startTemplate('sigma');
       return;
