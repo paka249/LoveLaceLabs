@@ -43,6 +43,7 @@ export default function ChatbotWidget({ dismissed, onDismiss }) {
         },
       });
     } catch (err) {
+      setMessages((prev) => prev.filter((m) => m.id !== botMessageId));
       if (err instanceof ChatApiError && err.status === 503) {
         setError("I'm not set up with an AI provider yet — ask your developer to configure one.");
       } else if (err instanceof ChatApiError && err.status === 429) {

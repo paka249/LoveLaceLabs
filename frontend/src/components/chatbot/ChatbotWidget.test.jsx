@@ -69,4 +69,23 @@ describe('ChatbotWidget', () => {
 
     expect(await screen.findByText(/Slow down/)).toBeInTheDocument();
   });
+
+  it('removes the empty assistant placeholder from history after an error, so it is not sent on the next message', async () => {
+    vi.spyOn(chatApi, 'sendChatMessage').mockRejectedValueOnce(new chatApi.ChatApiError('boom', 500));
+    render(<ChatbotWidget dismissed={false} onDismiss={vi.fn()} />);
+    fireEvent.click(screen.getByTitle('Chat with Ada'));
+    fireEvent.change(screen.getByPlaceholderText('Ask Ada anything...'), { target: { value: 'first message' } });
+    fireEvent.click(screen.getByText('Send'));
+
+    await screen.findByText(/couldn't reach my brain/);
+    expect(screen.getByText('first message')).toBeInTheDocument();
+
+    vi.spyOn(chatApi, 'sendChatMessage').mockImplementationOnce(async (messages, { onChunk }) => {
+      expect(messages.some((m) => m.role === 'assistant')).toBe(false);
+      onChunk('ok');
+    });
+    fireEvent.change(screen.getByPlaceholderText('Ask Ada anything...'), { target: { value: 'second message' } });
+    fireEvent.click(screen.getByText('Send'));
+    await screen.findByText('ok');
+  });
 });
