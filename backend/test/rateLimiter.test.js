@@ -23,6 +23,7 @@ test('allows requests under the limit', () => {
   limiter(req, res, () => nextCalled++);
   assert.equal(nextCalled, 2);
   assert.equal(res.statusCode, 200);
+  limiter.stop();
 });
 
 test('blocks requests once the limit is exceeded', () => {
@@ -35,6 +36,7 @@ test('blocks requests once the limit is exceeded', () => {
   assert.equal(nextCalled, 1);
   assert.equal(res.statusCode, 429);
   assert.ok(res.body.error);
+  limiter.stop();
 });
 
 test('tracks each IP independently', () => {
@@ -44,6 +46,7 @@ test('tracks each IP independently', () => {
   limiter({ ip: 'a' }, res, () => nextCalled++);
   limiter({ ip: 'b' }, res, () => nextCalled++);
   assert.equal(nextCalled, 2);
+  limiter.stop();
 });
 
 test('resets after the window elapses', async () => {
@@ -55,4 +58,17 @@ test('resets after the window elapses', async () => {
   await new Promise((resolve) => setTimeout(resolve, 60));
   limiter(req, res, () => nextCalled++);
   assert.equal(nextCalled, 2);
+  limiter.stop();
+});
+
+test('sweeps out stale entries so the map does not grow unbounded across many distinct IPs', async () => {
+  const limiter = createRateLimiter({ windowMs: 30, max: 5 });
+  const res = createFakeRes();
+  for (let i = 0; i < 50; i++) {
+    limiter({ ip: `ip-${i}` }, res, () => {});
+  }
+  assert.equal(limiter.size(), 50);
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  assert.equal(limiter.size(), 0);
+  limiter.stop();
 });
