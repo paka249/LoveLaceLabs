@@ -42,6 +42,7 @@ export function createChatHandler({ providerName, resolveProvider = getProvider 
     } catch (err) {
       console.error('Error while streaming chat response:', err);
       if (!res.headersSent) {
+        res.setHeader('Content-Type', 'application/json');
         res.status(500).json({ error: 'Something went wrong while generating a response.' });
       } else {
         res.write('\n\n[Error: response interrupted]');
