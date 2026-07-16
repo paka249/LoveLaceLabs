@@ -1,16 +1,30 @@
 import { getProvider } from '../providers/index.js';
 import { SYSTEM_PROMPT } from '../systemPrompt.js';
 
-export function createChatHandler({ providerName }) {
+const ALLOWED_ROLES = new Set(['user', 'assistant']);
+
+function isValidMessage(message) {
+  return (
+    message !== null &&
+    typeof message === 'object' &&
+    ALLOWED_ROLES.has(message.role) &&
+    typeof message.content === 'string' &&
+    message.content.trim().length > 0
+  );
+}
+
+export function createChatHandler({ providerName, resolveProvider = getProvider }) {
   return async function chatHandler(req, res) {
     const { messages } = req.body ?? {};
 
-    if (!Array.isArray(messages) || messages.length === 0) {
-      res.status(400).json({ error: 'Request must include a non-empty "messages" array.' });
+    if (!Array.isArray(messages) || messages.length === 0 || !messages.every(isValidMessage)) {
+      res.status(400).json({
+        error: 'Request must include a non-empty "messages" array of { role: "user"|"assistant", content: string } objects.',
+      });
       return;
     }
 
-    const provider = getProvider(providerName);
+    const provider = resolveProvider(providerName);
     if (!provider) {
       res.status(503).json({
         error: "I'm not set up with an AI provider yet - ask your developer to configure AI_PROVIDER.",
@@ -24,6 +38,13 @@ export function createChatHandler({ providerName }) {
     try {
       for await (const chunk of provider.stream(messages, SYSTEM_PROMPT)) {
         res.write(chunk);
+      }
+    } catch (err) {
+      console.error('Error while streaming chat response:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Something went wrong while generating a response.' });
+      } else {
+        res.write('\n\n[Error: response interrupted]');
       }
     } finally {
       res.end();
