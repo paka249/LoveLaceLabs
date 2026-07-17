@@ -15,7 +15,6 @@ export default function App() {
       <Sidebar
         open={sidebarOpen}
         onToggle={() => setSidebarOpen((v) => !v)}
-        chatbotDismissed={chatbotDismissed}
         onRestoreChatbot={() => setChatbotDismissed(false)}
       />
 
