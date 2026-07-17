@@ -12,10 +12,15 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
+    "katex": "^0.16.47",
     "nerdamer": "^1.1.13",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.16.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
     "tailwindcss": "^4.3.0"
   },
   "devDependencies": {

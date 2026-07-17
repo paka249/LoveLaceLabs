@@ -1,4 +1,12 @@
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import remarkGfm from 'remark-gfm';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+
+const MARKDOWN_PLUGINS = [remarkGfm, remarkMath];
+const REHYPE_PLUGINS = [rehypeKatex];
 
 export default function ChatPanel({ position, messages, onSend, isSending, error, onCollapse, onDismiss }) {
   const [draft, setDraft] = useState('');
@@ -35,10 +43,16 @@ export default function ChatPanel({ position, messages, onSend, isSending, error
             className={
               message.role === 'user'
                 ? 'ml-6 rounded-lg bg-primary/15 px-2 py-1'
-                : 'mr-6 rounded-lg bg-surface-container-high px-2 py-1'
+                : 'mr-6 rounded-lg bg-surface-container-high px-2 py-1 chat-markdown'
             }
           >
-            {message.content || (message.role === 'assistant' && isSending ? '…' : '')}
+            {message.content ? (
+              <ReactMarkdown remarkPlugins={MARKDOWN_PLUGINS} rehypePlugins={REHYPE_PLUGINS}>
+                {message.content}
+              </ReactMarkdown>
+            ) : (
+              message.role === 'assistant' && isSending ? '…' : ''
+            )}
           </div>
         ))}
         {error && <div className="mr-6 rounded-lg bg-red-500/15 text-red-400 px-2 py-1">{error}</div>}

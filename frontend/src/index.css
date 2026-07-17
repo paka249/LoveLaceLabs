@@ -100,3 +100,13 @@ body {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: #051424; }
 ::-webkit-scrollbar-thumb { background: #1c2b3c; border-radius: 10px; }
+
+.chat-markdown p { margin: 0.35em 0; }
+.chat-markdown p:first-child { margin-top: 0; }
+.chat-markdown p:last-child { margin-bottom: 0; }
+.chat-markdown ol,
+.chat-markdown ul { margin: 0.35em 0; padding-left: 1.25em; }
+.chat-markdown li { margin: 0.15em 0; }
+.chat-markdown code { background: rgba(255, 255, 255, 0.08); border-radius: 4px; padding: 0.1em 0.3em; }
+.chat-markdown .katex-display { margin: 0.5em 0; overflow-x: auto; overflow-y: hidden; }
+.chat-markdown .katex { font-size: 1em; }
