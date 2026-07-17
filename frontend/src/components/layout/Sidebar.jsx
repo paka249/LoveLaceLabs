@@ -43,7 +43,7 @@ function NavItem({ icon, img, label, active = false, open }) {
   );
 }
 
-export default function Sidebar({ open, onToggle }) {
+export default function Sidebar({ open, onToggle, chatbotDismissed, onRestoreChatbot }) {
   return (
     <aside
       className="fixed left-0 top-0 h-screen bg-surface-container border-r border-outline/20 backdrop-blur-md flex flex-col py-6 z-50 overflow-hidden transition-all duration-300"
@@ -91,6 +91,16 @@ export default function Sidebar({ open, onToggle }) {
           <img src={helpIcon} alt="Support" className="w-5 h-5 object-contain opacity-80 shrink-0" />
           {open && <span>Support</span>}
         </a>
+        {chatbotDismissed && (
+          <button
+            onClick={onRestoreChatbot}
+            title={!open ? 'Show Ada' : undefined}
+            className={`w-full flex items-center gap-3 py-2 text-on-surface-variant hover:text-primary transition-colors text-[11px] tracking-[0.05em] font-bold font-mono uppercase cursor-pointer ${open ? 'px-4' : 'justify-center px-2'}`}
+          >
+            <span className="w-5 h-5 flex items-center justify-center shrink-0 text-[13px]">◕‿◕</span>
+            {open && <span>Show Ada</span>}
+          </button>
+        )}
 
         {/* Collapse toggle */}
         <button

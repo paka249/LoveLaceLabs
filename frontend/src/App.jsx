@@ -3,13 +3,21 @@ import './index.css';
 import Sidebar from './components/layout/Sidebar';
 import TopAppBar from './components/layout/TopAppBar';
 import IntelligenceHub from './components/dashboard/IntelligenceHub';
+import ChatbotWidget from './components/chatbot/ChatbotWidget';
+import { usePersistedState } from './components/chatbot/usePersistedState';
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [chatbotDismissed, setChatbotDismissed] = usePersistedState('chatbot:dismissed', false);
 
   return (
     <div className="min-h-screen bg-background text-on-surface">
-      <Sidebar open={sidebarOpen} onToggle={() => setSidebarOpen((v) => !v)} />
+      <Sidebar
+        open={sidebarOpen}
+        onToggle={() => setSidebarOpen((v) => !v)}
+        chatbotDismissed={chatbotDismissed}
+        onRestoreChatbot={() => setChatbotDismissed(false)}
+      />
 
       <main
         className="min-h-screen blueprint-grid transition-all duration-300"
@@ -21,6 +29,8 @@ export default function App() {
           <IntelligenceHub />
         </div>
       </main>
+
+      <ChatbotWidget dismissed={chatbotDismissed} onDismiss={() => setChatbotDismissed(true)} />
     </div>
   );
 }
