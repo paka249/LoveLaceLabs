@@ -1,0 +1,77 @@
+- generic [ref=f1e3]:
+  - complementary [ref=f1e4]:
+    - generic [ref=f1e5]:
+      - img "LovelaceLabs logo" [ref=f1e6]
+      - heading "LovelaceLabs" [level=1] [ref=f1e7]
+    - navigation [ref=f1e8]:
+      - generic [ref=f1e9]:
+        - paragraph [ref=f1e10]: Workspace
+        - link "Calculator Calculator" [ref=f1e11] [cursor=pointer]:
+          - /url: "#"
+          - img "Calculator" [ref=f1e12]
+          - generic [ref=f1e13]: Calculator
+        - link "Calculus Calculus" [ref=f1e14] [cursor=pointer]:
+          - /url: "#"
+          - img "Calculus" [ref=f1e15]
+          - generic [ref=f1e16]: Calculus
+        - link "Linear Algebra Linear Algebra" [ref=f1e17] [cursor=pointer]:
+          - /url: "#"
+          - img "Linear Algebra" [ref=f1e18]
+          - generic [ref=f1e19]: Linear Algebra
+        - link "Statistics Statistics" [ref=f1e20] [cursor=pointer]:
+          - /url: "#"
+          - img "Statistics" [ref=f1e21]
+          - generic [ref=f1e22]: Statistics
+        - link "Library Library" [ref=f1e23] [cursor=pointer]:
+          - /url: "#"
+          - img "Library" [ref=f1e24]
+          - generic [ref=f1e25]: Library
+        - link "Finance Finance" [ref=f1e26] [cursor=pointer]:
+          - /url: "#"
+          - img "Finance" [ref=f1e27]
+          - generic [ref=f1e28]: Finance
+        - link "Graph Graph" [ref=f1e29] [cursor=pointer]:
+          - /url: "#"
+          - img "Graph" [ref=f1e30]
+          - generic [ref=f1e31]: Graph
+    - generic [ref=f1e32]:
+      - link "Settings Settings" [ref=f1e33] [cursor=pointer]:
+        - /url: "#"
+        - img "Settings" [ref=f1e34]
+        - generic [ref=f1e35]: Settings
+      - link "Support Support" [ref=f1e36] [cursor=pointer]:
+        - /url: "#"
+        - img "Support" [ref=f1e37]
+        - generic [ref=f1e38]: Support
+      - button "Collapse" [ref=f1e39] [cursor=pointer]
+  - main [ref=f1e43]:
+    - generic [ref=f1e47]:
+      - button "UPGRADE TO PRO" [ref=f1e48] [cursor=pointer]
+      - img "Account" [ref=f1e51] [cursor=pointer]
+    - generic [ref=f1e53]:
+      - generic [ref=f1e54]:
+        - heading "Analytical Engine" [level=2] [ref=f1e55]
+        - paragraph [ref=f1e56]: Enter symbolic expressions, natural language queries, or data streams.
+      - generic [ref=f1e58]:
+        - button [ref=f1e59] [cursor=pointer]:
+          - img "calculator" [ref=f1e60]
+        - textbox "integrate log(x)^2 from 0 to 1..." [ref=f1e61]
+        - generic [ref=f1e62]:
+          - button "clear" [ref=f1e63] [cursor=pointer]
+          - button [ref=f1e64] [cursor=pointer]:
+            - img "submit" [ref=f1e65]
+  - generic [ref=f1e97]:
+    - generic [ref=f1e98]:
+      - generic [ref=f1e99]: Ada
+      - generic [ref=f1e100]:
+        - button "_" [ref=f1e101] [cursor=pointer]
+        - button "×" [ref=f1e102] [cursor=pointer]
+    - generic [ref=f1e103]:
+      - generic [ref=f1e104]: what is a derivative
+      - generic [ref=f1e105]: "Here's a mock answer to: \"what is a derivative\". Once a real AI provider is configured, this is where an actual homework answer will appear."
+      - generic [ref=f1e109]: test with backend down
+      - generic [ref=f1e111]: test 503
+      - generic [ref=f1e112]: I'm not set up with an AI provider yet — ask your developer to configure one.
+    - generic [ref=f1e106]:
+      - textbox "Ask Ada anything..." [ref=f1e107]
+      - button "Send" [disabled] [ref=f1e108]

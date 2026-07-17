@@ -28,7 +28,9 @@ export default function ChatbotWidget({ dismissed, onDismiss }) {
   async function handleSend(text) {
     const userMessage = { id: generateId(), role: 'user', content: text };
     const botMessageId = generateId();
-    const history = [...messages, userMessage].map(({ role, content }) => ({ role, content }));
+    const history = [...messages, userMessage]
+      .filter((m) => m.content.trim().length > 0)
+      .map(({ role, content }) => ({ role, content }));
 
     setMessages((prev) => [...prev, userMessage, { id: botMessageId, role: 'assistant', content: '' }]);
     setError(null);

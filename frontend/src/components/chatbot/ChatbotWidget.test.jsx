@@ -88,4 +88,26 @@ describe('ChatbotWidget', () => {
     fireEvent.click(screen.getByText('Send'));
     await screen.findByText('ok');
   });
+
+  it('excludes a stale empty assistant message (e.g. left over from an interrupted stream) from the next request payload', async () => {
+    window.localStorage.setItem(
+      'chatbot:messages',
+      JSON.stringify([
+        { id: 'u1', role: 'user', content: 'first message' },
+        { id: 'a1', role: 'assistant', content: '' },
+      ])
+    );
+
+    vi.spyOn(chatApi, 'sendChatMessage').mockImplementationOnce(async (messages, { onChunk }) => {
+      expect(messages.every((m) => m.content.trim().length > 0)).toBe(true);
+      expect(messages.some((m) => m.id === 'a1')).toBe(false);
+      onChunk('ok');
+    });
+
+    render(<ChatbotWidget dismissed={false} onDismiss={vi.fn()} />);
+    fireEvent.click(screen.getByTitle('Chat with Ada'));
+    fireEvent.change(screen.getByPlaceholderText('Ask Ada anything...'), { target: { value: 'second message' } });
+    fireEvent.click(screen.getByText('Send'));
+    await screen.findByText('ok');
+  });
 });
