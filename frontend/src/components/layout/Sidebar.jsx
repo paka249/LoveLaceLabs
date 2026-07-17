@@ -7,6 +7,7 @@ import calculusIcon from '../../assets/icon-calculus.svg';
 import linearIcon from '../../assets/icon-linear.svg';
 import statsIcon from '../../assets/icon-stats.svg';
 import helpIcon from '../../assets/icon-help.svg';
+import adaAvatar from '../../assets/adaAvatar';
 
 const LOGO = '/favicon.jpeg';
 
@@ -96,7 +97,7 @@ export default function Sidebar({ open, onToggle, onRestoreChatbot }) {
           title={!open ? 'Ada' : undefined}
           className={`w-full flex items-center gap-3 py-2 text-primary hover:text-primary-fixed-dim transition-colors text-[11px] tracking-[0.05em] font-bold font-mono uppercase cursor-pointer ${open ? 'px-4' : 'justify-center px-2'}`}
         >
-          <span className="w-5 h-5 flex items-center justify-center shrink-0 text-[13px]">◕‿◕</span>
+          <img src={adaAvatar} alt="Ada" className="w-5 h-5 rounded-full object-cover shrink-0" />
           {open && <span>Ada</span>}
         </button>
 

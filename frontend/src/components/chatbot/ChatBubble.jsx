@@ -1,4 +1,4 @@
-const FACE = '◕‿◕';
+import adaAvatar from '../../assets/adaAvatar';
 
 export default function ChatBubble({ position, onPointerDown, onOpen, onDismiss, hasMovedRef }) {
   return (
@@ -12,10 +12,9 @@ export default function ChatBubble({ position, onPointerDown, onOpen, onDismiss,
           if (!hasMovedRef.current) onOpen();
         }}
         title="Chat with Ada"
-        className="w-14 h-14 rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing select-none shadow-[0_0_18px_rgba(52,211,153,0.35)]"
-        style={{ background: '#122131', border: '2px solid #5af0b3' }}
+        className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing select-none shadow-[0_0_18px_rgba(52,211,153,0.35)]"
       >
-        <span style={{ color: '#5af0b3' }} className="text-lg">{FACE}</span>
+        <img src={adaAvatar} alt="Ada" className="w-full h-full object-cover" draggable={false} />
       </div>
       <button
         type="button"

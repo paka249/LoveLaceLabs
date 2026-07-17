@@ -1,0 +1,69 @@
+- generic [ref=f4e3]:
+  - complementary [ref=f4e4]:
+    - generic [ref=f4e5]:
+      - img "LovelaceLabs logo" [ref=f4e6]
+      - heading "LovelaceLabs" [level=1] [ref=f4e7]
+    - navigation [ref=f4e8]:
+      - generic [ref=f4e9]:
+        - paragraph [ref=f4e10]: Workspace
+        - link "Calculator Calculator" [ref=f4e11] [cursor=pointer]:
+          - /url: "#"
+          - img "Calculator" [ref=f4e12]
+          - generic [ref=f4e13]: Calculator
+        - link "Calculus Calculus" [ref=f4e14] [cursor=pointer]:
+          - /url: "#"
+          - img "Calculus" [ref=f4e15]
+          - generic [ref=f4e16]: Calculus
+        - link "Linear Algebra Linear Algebra" [ref=f4e17] [cursor=pointer]:
+          - /url: "#"
+          - img "Linear Algebra" [ref=f4e18]
+          - generic [ref=f4e19]: Linear Algebra
+        - link "Statistics Statistics" [ref=f4e20] [cursor=pointer]:
+          - /url: "#"
+          - img "Statistics" [ref=f4e21]
+          - generic [ref=f4e22]: Statistics
+        - link "Library Library" [ref=f4e23] [cursor=pointer]:
+          - /url: "#"
+          - img "Library" [ref=f4e24]
+          - generic [ref=f4e25]: Library
+        - link "Finance Finance" [ref=f4e26] [cursor=pointer]:
+          - /url: "#"
+          - img "Finance" [ref=f4e27]
+          - generic [ref=f4e28]: Finance
+        - link "Graph Graph" [ref=f4e29] [cursor=pointer]:
+          - /url: "#"
+          - img "Graph" [ref=f4e30]
+          - generic [ref=f4e31]: Graph
+    - generic [ref=f4e32]:
+      - link "Settings Settings" [ref=f4e33] [cursor=pointer]:
+        - /url: "#"
+        - img "Settings" [ref=f4e34]
+        - generic [ref=f4e35]: Settings
+      - link "Support Support" [ref=f4e36] [cursor=pointer]:
+        - /url: "#"
+        - img "Support" [ref=f4e37]
+        - generic [ref=f4e38]: Support
+      - button "Ada Ada" [ref=f4e39] [cursor=pointer]:
+        - img "Ada" [ref=f4e40]
+        - generic [ref=f4e41]: Ada
+      - button "Collapse" [ref=f4e42] [cursor=pointer]
+  - main [ref=f4e46]:
+    - generic [ref=f4e50]:
+      - button "UPGRADE TO PRO" [ref=f4e51] [cursor=pointer]
+      - img "Account" [ref=f4e54] [cursor=pointer]
+    - generic [ref=f4e56]:
+      - generic [ref=f4e57]:
+        - heading "Analytical Engine" [level=2] [ref=f4e58]
+        - paragraph [ref=f4e59]: Enter symbolic expressions, natural language queries, or data streams.
+      - generic [ref=f4e61]:
+        - button [ref=f4e62] [cursor=pointer]:
+          - img "calculator" [ref=f4e63]
+        - textbox "integrate log(x)^2 from 0 to 1..." [ref=f4e64]
+        - generic [ref=f4e65]:
+          - button "clear" [ref=f4e66] [cursor=pointer]
+          - button [ref=f4e67] [cursor=pointer]:
+            - img "submit" [ref=f4e68]
+  - generic [ref=f4e83]:
+    - generic "Chat with Ada" [ref=f4e84]:
+      - img "Ada" [ref=f4e85]
+    - button "×" [ref=f4e86] [cursor=pointer]
