@@ -62,7 +62,7 @@
 - Create: `backend/test/db.migration.test.js`
 
 **Interfaces:**
-- Produces: `db` (default export of `backend/src/db/index.js`) — a Knex instance, queryable as `db('users')...`.
+- Produces: `db` (named export of `backend/src/db/index.js`, consumed elsewhere as `import { db } from './db/index.js'` — see Task 5) — a Knex instance, queryable as `db('users')...`.
 - Produces: `createTestDb()` (named export of `backend/test/testDb.js`) — returns `{ db, cleanup }` where `db` is an in-memory Knex instance with migrations already applied, and `cleanup()` closes it. Signature: `async function createTestDb(): Promise<{ db: Knex, cleanup: () => Promise<void> }>`.
 - `users` table columns: `id` (string, primary key), `google_id` (string, unique, not null), `email` (string, not null), `name` (string, not null), `picture_url` (string, nullable), `created_at` (timestamp, defaults to now).
 
