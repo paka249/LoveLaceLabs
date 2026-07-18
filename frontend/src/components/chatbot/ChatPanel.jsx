@@ -4,12 +4,32 @@ import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { useResizable } from './useResizable';
 
 const MARKDOWN_PLUGINS = [remarkGfm, remarkMath];
 const REHYPE_PLUGINS = [rehypeKatex];
+const MIN_PANEL_SIZE = { width: 280, height: 320 };
+const DEFAULT_PANEL_SIZE = { width: 320, height: 420 };
 
-export default function ChatPanel({ position, messages, onSend, isSending, error, onCollapse, onDismiss }) {
+export default function ChatPanel({
+  position,
+  size = DEFAULT_PANEL_SIZE,
+  onResize = () => {},
+  onHeaderPointerDown = () => {},
+  messages,
+  onSend,
+  isSending,
+  error,
+  onCollapse,
+  onDismiss,
+}) {
   const [draft, setDraft] = useState('');
+  const { size: panelSize, handlePointerDown: handleResizePointerDown } = useResizable({
+    initialSize: size,
+    minSize: MIN_PANEL_SIZE,
+    position,
+    onResizeEnd: onResize,
+  });
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -21,12 +41,22 @@ export default function ChatPanel({ position, messages, onSend, isSending, error
 
   return (
     <div
-      style={{ position: 'fixed', left: position.x, top: position.y, zIndex: 1000 }}
-      className="w-80 h-[420px] flex flex-col rounded-2xl border border-primary/25 bg-surface-container-low/95 backdrop-blur-md overflow-hidden"
+      style={{
+        position: 'fixed',
+        left: position.x,
+        top: position.y,
+        width: panelSize.width,
+        height: panelSize.height,
+        zIndex: 1000,
+      }}
+      className="flex flex-col rounded-2xl border border-primary/25 bg-surface-container-low/95 backdrop-blur-md overflow-hidden"
     >
-      <div className="flex items-center justify-between px-3 py-2 border-b border-outline/20">
+      <div
+        onPointerDown={onHeaderPointerDown}
+        className="flex items-center justify-between px-3 py-2 border-b border-outline/20 cursor-grab active:cursor-grabbing select-none"
+      >
         <span className="text-sm font-bold text-primary">Ada</span>
-        <div className="flex items-center gap-3">
+        <div onPointerDown={(e) => e.stopPropagation()} className="flex items-center gap-3">
           <button type="button" onClick={onCollapse} title="Minimize" className="text-on-surface-variant hover:text-primary cursor-pointer">
             _
           </button>
@@ -73,6 +103,16 @@ export default function ChatPanel({ position, messages, onSend, isSending, error
           Send
         </button>
       </form>
+
+      <div
+        onPointerDown={handleResizePointerDown}
+        title="Resize"
+        className="absolute bottom-0 right-0 w-4 h-4 flex items-end justify-end p-0.5 cursor-nwse-resize text-on-surface-variant/50 hover:text-primary"
+      >
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 1 1 7M7 4 4 7" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+        </svg>
+      </div>
     </div>
   );
 }

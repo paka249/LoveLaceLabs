@@ -29,6 +29,7 @@ export function useDraggable({ initialPosition, size, onDragEnd }) {
   }, [size]);
 
   function handlePointerDown(e) {
+    e.preventDefault();
     hasMovedRef.current = false;
     dragOffsetRef.current = { x: e.clientX - position.x, y: e.clientY - position.y };
     setIsDragging(true);

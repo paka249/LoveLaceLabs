@@ -7,23 +7,30 @@ import ChatBubble from './ChatBubble';
 import ChatPanel from './ChatPanel';
 
 const BUBBLE_SIZE = { width: 56, height: 76 };
-const PANEL_SIZE = { width: 320, height: 420 };
+const DEFAULT_PANEL_SIZE = { width: 320, height: 420 };
 const DEFAULT_POSITION = { x: 24, y: 120 };
 
 export default function ChatbotWidget({ dismissed, onDismiss }) {
   const [position, setPosition] = usePersistedState('chatbot:position', DEFAULT_POSITION);
-  const [panelOpen, setPanelOpen] = usePersistedState('chatbot:panelOpen', false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelSize, setPanelSize] = usePersistedState('chatbot:panelSize', DEFAULT_PANEL_SIZE);
   const [messages, setMessages] = usePersistedState('chatbot:messages', []);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState(null);
 
   const { position: dragPosition, handlePointerDown, hasMovedRef } = useDraggable({
     initialPosition: position,
-    size: panelOpen ? PANEL_SIZE : BUBBLE_SIZE,
+    size: panelOpen ? panelSize : BUBBLE_SIZE,
     onDragEnd: setPosition,
   });
 
   if (dismissed) return null;
+
+  // Reset to the avatar bubble on dismiss so restoring Ada from the sidebar never lands mid-conversation.
+  function handleDismiss() {
+    setPanelOpen(false);
+    onDismiss();
+  }
 
   async function handleSend(text) {
     const userMessage = { id: generateId(), role: 'user', content: text };
@@ -62,12 +69,15 @@ export default function ChatbotWidget({ dismissed, onDismiss }) {
     return (
       <ChatPanel
         position={dragPosition}
+        size={panelSize}
+        onResize={setPanelSize}
+        onHeaderPointerDown={handlePointerDown}
         messages={messages}
         onSend={handleSend}
         isSending={isSending}
         error={error}
         onCollapse={() => setPanelOpen(false)}
-        onDismiss={onDismiss}
+        onDismiss={handleDismiss}
       />
     );
   }
@@ -77,7 +87,7 @@ export default function ChatbotWidget({ dismissed, onDismiss }) {
       position={dragPosition}
       onPointerDown={handlePointerDown}
       onOpen={() => setPanelOpen(true)}
-      onDismiss={onDismiss}
+      onDismiss={handleDismiss}
       hasMovedRef={hasMovedRef}
     />
   );

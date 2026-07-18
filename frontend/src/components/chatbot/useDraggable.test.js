@@ -39,7 +39,7 @@ describe('useDraggable', () => {
     );
 
     act(() => {
-      result.current.handlePointerDown({ clientX: 10, clientY: 10 });
+      result.current.handlePointerDown({ clientX: 10, clientY: 10, preventDefault: () => {} });
     });
     expect(result.current.isDragging).toBe(true);
 
@@ -61,7 +61,7 @@ describe('useDraggable', () => {
       useDraggable({ initialPosition: { x: 10, y: 10 }, size })
     );
     act(() => {
-      result.current.handlePointerDown({ clientX: 10, clientY: 10 });
+      result.current.handlePointerDown({ clientX: 10, clientY: 10, preventDefault: () => {} });
     });
     act(() => {
       window.dispatchEvent(new window.PointerEvent('pointerup'));
