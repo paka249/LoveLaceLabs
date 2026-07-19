@@ -36,7 +36,7 @@ export async function preloadSymbolicMath() {
   return symbolicMathPromise;
 }
 
-function normalizeImplicitMultiplication(expr) {
+export function normalizeImplicitMultiplication(expr) {
   let normalized = expr;
   const placeholders = new Map();
 
