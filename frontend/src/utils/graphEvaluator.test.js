@@ -59,4 +59,20 @@ describe('compileExpression', () => {
     const f = compileExpression('sqrt(x)');
     expect(f(-1)).toBeNaN();
   });
+
+  it('supports ln as natural log', () => {
+    const f = compileExpression('ln(x)');
+    expect(f(Math.E)).toBeCloseTo(1);
+    expect(f(1)).toBeCloseTo(0);
+  });
+
+  it('supports log as base-10 log', () => {
+    const f = compileExpression('log(x)');
+    expect(f(100)).toBeCloseTo(2);
+  });
+
+  it('supports log10 as an explicit alias for base-10 log', () => {
+    const f = compileExpression('log10(x)');
+    expect(f(1000)).toBeCloseTo(3);
+  });
 });

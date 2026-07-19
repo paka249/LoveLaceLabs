@@ -9,9 +9,9 @@ const REPLACEMENTS = [
   [/\babs\(/g, 'Math.abs('],
   [/\bfloor\(/g, 'Math.floor('],
   [/\bceil\(/g, 'Math.ceil('],
-  [/\bln\(/g, 'Math.log('],
   [/\blog10\(/g, 'Math.log10('],
   [/\blog\(/g, 'Math.log10('],
+  [/\bln\(/g, 'Math.log('],
   [/\basin\(/g, 'Math.asin('],
   [/\bacos\(/g, 'Math.acos('],
   [/\batan\(/g, 'Math.atan('],
@@ -24,7 +24,7 @@ const REPLACEMENTS = [
 ];
 
 const SAFE_TOKEN =
-  /Math\.(?:PI|E|sqrt|abs|floor|ceil|log10|asin|acos|atan|sin|cos|tan)|\d+\.?\d*|\.\d+|x|[+\-*/%().,]|\s+/g;
+  /Math\.(?:PI|E|sqrt|abs|floor|ceil|log10|log|asin|acos|atan|sin|cos|tan)|\d+\.?\d*|\.\d+|x|[+\-*/%().,]|\s+/g;
 
 function toJsExpression(expr) {
   let js = normalizeImplicitMultiplication(expr.trim());
