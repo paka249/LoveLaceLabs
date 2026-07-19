@@ -44,10 +44,17 @@ export function createGoogleLoginHandler({ db, verify = verifyGoogleToken }) {
       return;
     }
 
-    const user = await findOrCreateUser(db, profile);
-    const token = createSessionToken(user.id);
-    setSessionCookie(res, token);
-    res.json(toPublicUser(user));
+    try {
+      const user = await findOrCreateUser(db, profile);
+      const token = createSessionToken(user.id);
+      setSessionCookie(res, token);
+      res.json(toPublicUser(user));
+    } catch (err) {
+      console.error('Error while creating session for Google sign-in:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Something went wrong while signing you in.' });
+      }
+    }
   };
 }
 
@@ -60,13 +67,20 @@ export function createMeHandler({ db }) {
       return;
     }
 
-    const user = await db('users').where({ id: userId }).first();
-    if (!user) {
-      res.status(401).json({ error: 'Not signed in.' });
-      return;
-    }
+    try {
+      const user = await db('users').where({ id: userId }).first();
+      if (!user) {
+        res.status(401).json({ error: 'Not signed in.' });
+        return;
+      }
 
-    res.json(toPublicUser(user));
+      res.json(toPublicUser(user));
+    } catch (err) {
+      console.error('Error while looking up session user:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Something went wrong while checking your session.' });
+      }
+    }
   };
 }
 

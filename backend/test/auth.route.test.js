@@ -133,6 +133,32 @@ test('GET /api/auth/me returns the profile for a valid session cookie', async ()
   }
 });
 
+test('POST /api/auth/google responds 500 with a JSON error body when session/DB work throws', async () => {
+  const { db, cleanup } = await createTestDb();
+  try {
+    const fakeVerify = async () => ({
+      googleId: 'g-1',
+      email: 'a@example.com',
+      name: 'Ada',
+      pictureUrl: 'http://pic',
+    });
+    // Force the post-verification DB work to throw, simulating e.g. a locked
+    // DB file or a bad SESSION_SECRET, and make sure it doesn't escape the
+    // handler as an unhandled rejection.
+    const throwingDb = () => { throw new Error('db unavailable'); };
+    const handler = createGoogleLoginHandler({ db: throwingDb, verify: fakeVerify });
+    const req = { body: { credential: 'anything' } };
+    const res = createFakeRes();
+
+    await assert.doesNotReject(handler(req, res));
+
+    assert.equal(res.statusCode, 500);
+    assert.ok(res.body && typeof res.body.error === 'string');
+  } finally {
+    await cleanup();
+  }
+});
+
 test('GET /api/auth/me responds 401 when there is no session cookie', async () => {
   const { db, cleanup } = await createTestDb();
   try {
@@ -140,6 +166,41 @@ test('GET /api/auth/me responds 401 when there is no session cookie', async () =
     const res = createFakeRes();
     await meHandler({ cookies: {} }, res);
     assert.equal(res.statusCode, 401);
+  } finally {
+    await cleanup();
+  }
+});
+
+test('GET /api/auth/me responds 500 with a JSON error body when the DB lookup throws', async () => {
+  const { db, cleanup } = await createTestDb();
+  try {
+    await db('users').insert({
+      id: 'user-1',
+      google_id: 'g-1',
+      email: 'a@example.com',
+      name: 'Ada',
+      picture_url: 'http://pic',
+    });
+
+    const loginRes = createFakeRes();
+    await createGoogleLoginHandler({ db, verify: async () => ({ googleId: 'g-1', email: 'a@example.com', name: 'Ada', pictureUrl: 'http://pic' }) })(
+      { body: { credential: 'anything' } },
+      loginRes
+    );
+    const token = loginRes.cookies.session;
+
+    // Force the DB lookup to throw, simulating e.g. a locked/read-only DB
+    // file, and make sure it doesn't escape the handler as an unhandled
+    // rejection.
+    const throwingDb = () => { throw new Error('db unavailable'); };
+    const meHandler = createMeHandler({ db: throwingDb });
+    const req = { cookies: { session: token } };
+    const res = createFakeRes();
+
+    await assert.doesNotReject(meHandler(req, res));
+
+    assert.equal(res.statusCode, 500);
+    assert.ok(res.body && typeof res.body.error === 'string');
   } finally {
     await cleanup();
   }
