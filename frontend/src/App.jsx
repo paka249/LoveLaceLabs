@@ -5,6 +5,7 @@ import './index.css';
 import AppShell from './components/layout/AppShell';
 import IntelligenceHub from './components/dashboard/IntelligenceHub';
 import Login from './pages/Login';
+import Graph from './pages/Graph';
 import { AuthProvider } from './auth/AuthContext';
 import { usePersistedState } from './components/chatbot/usePersistedState';
 
@@ -44,6 +45,7 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/graph" element={<Graph {...sharedShellProps} />} />
             <Route path="*" element={<Home {...sharedShellProps} />} />
           </Routes>
         </BrowserRouter>
