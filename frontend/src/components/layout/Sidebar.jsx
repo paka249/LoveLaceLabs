@@ -1,3 +1,4 @@
+import { Link, useLocation } from 'react-router-dom';
 import bookImg from '../../assets/book.png';
 import settingsImg from '../../assets/settings.png';
 import financeImg from '../../assets/finance.svg';
@@ -12,34 +13,47 @@ import adaAvatar from '../../assets/adaAvatar';
 const LOGO = '/favicon.jpeg';
 
 const NAV_WORKSPACE = [
-  { img: calcIcon, label: 'Calculator', active: true },
+  { img: calcIcon, label: 'Calculator', path: '/' },
   { img: calculusIcon, label: 'Calculus' },
   { img: linearIcon, label: 'Linear Algebra' },
   { img: statsIcon, label: 'Statistics' },
   { img: bookImg, label: 'Library' },
   { img: financeImg, label: 'Finance' },
-  { img: graphImg, label: 'Graph' },
+  { img: graphImg, label: 'Graph', path: '/graph' },
 ];
 
-function NavItem({ icon, img, label, active = false, open }) {
+function NavItem({ icon, img, label, path, open }) {
+  const location = useLocation();
+  const active = path !== undefined && location.pathname === path;
   const base =
     'flex items-center gap-3 px-3 py-2 transition-all duration-200 cursor-pointer text-[11px] tracking-[0.05em] font-bold uppercase font-mono';
   const activeClass =
     'text-primary border-r-2 border-primary translate-x-1 bg-[rgba(52,211,153,0.15)]';
   const inactiveClass =
     'text-on-surface-variant hover:bg-surface-container-high hover:text-primary';
+  const className = `${base} ${active ? activeClass : inactiveClass} ${!open ? 'justify-center' : ''}`;
 
-  return (
-    <a
-      href="#"
-      title={!open ? label : undefined}
-      className={`${base} ${active ? activeClass : inactiveClass} ${!open ? 'justify-center' : ''}`}
-    >
+  const content = (
+    <>
       {img
         ? <img src={img} alt={label} className="w-5 h-5 object-contain opacity-80 shrink-0" />
         : <span className="material-symbols-outlined text-[20px] shrink-0">{icon}</span>
       }
       {open && <span>{label}</span>}
+    </>
+  );
+
+  if (path !== undefined) {
+    return (
+      <Link to={path} title={!open ? label : undefined} className={className}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <a href="#" title={!open ? label : undefined} className={className}>
+      {content}
     </a>
   );
 }
