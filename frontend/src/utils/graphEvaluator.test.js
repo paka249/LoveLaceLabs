@@ -75,4 +75,35 @@ describe('compileExpression', () => {
     const f = compileExpression('log10(x)');
     expect(f(1000)).toBeCloseTo(3);
   });
+
+  it('supports implicit multiplication between a coefficient and a function name like 2sin(x)', () => {
+    const f = compileExpression('2sin(x)');
+    expect(f(Math.PI / 2)).toBeCloseTo(2 * Math.sin(Math.PI / 2));
+    expect(f(0)).toBeCloseTo(2 * Math.sin(0));
+  });
+
+  it('supports implicit multiplication between a coefficient and a function name like 3cos(x)', () => {
+    const f = compileExpression('3cos(x)');
+    expect(f(0)).toBeCloseTo(3 * Math.cos(0));
+  });
+
+  it('supports implicit multiplication between a coefficient and sqrt like 2sqrt(x)', () => {
+    const f = compileExpression('2sqrt(x)');
+    expect(f(9)).toBeCloseTo(6);
+  });
+
+  it('supports implicit multiplication between a coefficient and the pi constant like 2pi', () => {
+    const f = compileExpression('2pi');
+    expect(f(0)).toBeCloseTo(2 * Math.PI);
+  });
+
+  it('still supports sin(x) alone with no leading digit', () => {
+    const f = compileExpression('sin(x)');
+    expect(f(Math.PI / 2)).toBeCloseTo(1);
+  });
+
+  it('still supports 2x^2 implicit multiplication with no keyword involved', () => {
+    const f = compileExpression('2x^2');
+    expect(f(3)).toBeCloseTo(18);
+  });
 });

@@ -26,8 +26,26 @@ const REPLACEMENTS = [
 const SAFE_TOKEN =
   /Math\.(?:PI|E|sqrt|abs|floor|ceil|log10|log|asin|acos|atan|sin|cos|tan)|\d+\.?\d*|\.\d+|x|[+\-*/%().,]|\s+/g;
 
+// A digit directly followed by a known function/constant name (e.g. "2sin(x)",
+// "2pi") has no word boundary between them, so normalizeImplicitMultiplication's
+// \b<name>\b protection never fires and the name gets letter-split. Insert an
+// explicit "*" between the digit and the keyword before that step runs.
+//
+// Known limitation: this only handles a *digit* directly before a keyword. A
+// variable letter directly before a keyword (e.g. "xsin(x)") is not handled -
+// that's a rarer, more ambiguous notation and is intentionally out of scope.
+const KEYWORD_NAMES = [
+  'log10', 'log', 'ln', 'sqrt', 'abs', 'floor', 'ceil',
+  'asin', 'acos', 'atan', 'sin', 'cos', 'tan', 'pi', 'e',
+];
+const COEFFICIENT_KEYWORD_PATTERN = new RegExp(`(\\d)(${KEYWORD_NAMES.join('|')})\\b`, 'g');
+
+function insertCoefficientMultiplication(expr) {
+  return expr.replace(COEFFICIENT_KEYWORD_PATTERN, '$1*$2');
+}
+
 function toJsExpression(expr) {
-  let js = normalizeImplicitMultiplication(expr.trim());
+  let js = normalizeImplicitMultiplication(insertCoefficientMultiplication(expr.trim()));
   for (const [pattern, replacement] of REPLACEMENTS) {
     js = js.replace(pattern, replacement);
   }
