@@ -57,6 +57,32 @@ describe('GraphFunctionInput', () => {
     expect(screen.getByRole('textbox').className).not.toMatch(/border-red/);
   });
 
+  it('promotes a typed ^ to a <sup> and seeds it with a ZWSP so the caret sticks', () => {
+    const onChange = vi.fn();
+    render(<GraphFunctionInput value="" onChange={onChange} placeholder="" isValid />);
+    const editor = screen.getByRole('textbox');
+
+    editor.focus();
+    editor.textContent = 'x^';
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.setStart(editor.firstChild, 2);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    fireEvent.input(editor);
+
+    const sup = editor.querySelector('sup');
+    expect(sup).not.toBeNull();
+    // The sup must carry a non-empty text node (ZWSP placeholder) so a real
+    // caret position exists for the next keystroke to land in — a genuinely
+    // empty text node has no client rect and native typing won't honor it.
+    expect(sup.firstChild.length).toBeGreaterThan(0);
+    // But the placeholder must not leak into the serialized expression.
+    expect(onChange).toHaveBeenCalledWith('x^');
+  });
+
   it('prevents Enter key from inserting a newline block', () => {
     render(<GraphFunctionInput value="" onChange={() => {}} placeholder="" isValid />);
     const editor = screen.getByRole('textbox');

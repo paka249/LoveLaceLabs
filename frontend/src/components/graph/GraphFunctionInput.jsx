@@ -1,12 +1,25 @@
 import { useLayoutEffect, useRef } from 'react';
-import { serializeInput, deserializeToHtml } from './graphInputUtils';
+import { serializeInput, deserializeToHtml, ZWSP } from './graphInputUtils';
+
+// A collapsed caret placed inside a truly empty text node has no client rect in
+// most browsers, so native typing doesn't honor it — the next keystroke lands
+// wherever the caret last had a real box instead. Seeding the node with a
+// zero-width space gives it one; serializeInput strips ZWSP back out.
+function placeCaret(sel, textNode, offset) {
+  if (textNode.length === 0) {
+    textNode.data = ZWSP;
+    offset = 1;
+  }
+  const r = document.createRange();
+  r.setStart(textNode, offset);
+  r.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(r);
+}
 
 export default function GraphFunctionInput({ value, onChange, placeholder, isValid, onAddFunction }) {
   const editorRef = useRef(null);
 
-  // Initialize innerHTML exactly once on mount. After that the browser owns the DOM;
-  // we only emit via onChange. Syncing on every value change fights contenteditable
-  // and causes the caret/sup to disappear during React's effect cycle.
   useLayoutEffect(() => {
     const el = editorRef.current;
     if (!el || !value) return;
@@ -22,40 +35,6 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
     return null;
   }
 
-  function insertSup() {
-    const el = editorRef.current;
-    if (!el) return;
-    if (document.activeElement !== el) el.focus();
-
-    // execCommand('insertHTML') inserts at the caret and correctly places the
-    // cursor after the inserted fragment. range.insertNode puts the cursor
-    // BEFORE the node per spec, causing typed characters to land outside the sup.
-    const uid = `sup-${Date.now()}`;
-    document.execCommand('insertHTML', false, `<sup data-uid="${uid}"></sup>`);
-
-    const supEl = el.querySelector(`sup[data-uid="${uid}"]`);
-    if (!supEl) return;
-    supEl.removeAttribute('data-uid');
-
-    const textNode = document.createTextNode('');
-    supEl.appendChild(textNode);
-
-    if (!supEl.nextSibling || supEl.nextSibling.nodeType !== Node.TEXT_NODE) {
-      supEl.after(document.createTextNode(''));
-    }
-
-    const sel = window.getSelection();
-    if (sel) {
-      const r = document.createRange();
-      r.setStart(textNode, 0);
-      r.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(r);
-    }
-
-    onChange(serializeInput(el));
-  }
-
   function exitSup(supEl) {
     const sel = window.getSelection();
     if (!sel) return;
@@ -64,23 +43,13 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
       afterNode = document.createTextNode('');
       supEl.after(afterNode);
     }
-    const newRange = document.createRange();
-    newRange.setStart(afterNode, 0);
-    newRange.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(newRange);
+    placeCaret(sel, afterNode, 0);
   }
 
   function handleKeyDown(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
       onAddFunction?.();
-      return;
-    }
-
-    if (e.key === '^') {
-      e.preventDefault();
-      insertSup();
       return;
     }
 
@@ -101,29 +70,73 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
         e.preventDefault();
         exitSup(supEl);
       }
-      // early return is safe — no later branch in this handler matches ArrowRight
       return;
     }
 
     if (e.key === 'Backspace' && supEl) {
-      if (sel.anchorOffset === 0 && sel.focusOffset === 0) {
+      // Content check (not offset) because a freshly-created sup carries a ZWSP
+      // placeholder, so "empty" caret positions can be offset 0 or 1.
+      const supContent = supEl.textContent.replace(new RegExp(ZWSP, 'g'), '');
+      if (supContent === '') {
         e.preventDefault();
         const parent = supEl.parentNode;
         const caretText = document.createTextNode('^');
         parent.insertBefore(caretText, supEl);
         supEl.remove();
-        const newRange = document.createRange();
-        newRange.setStart(caretText, 1);
-        newRange.collapse(true);
+        const r = document.createRange();
+        r.setStart(caretText, 1);
+        r.collapse(true);
         sel.removeAllRanges();
-        sel.addRange(newRange);
+        sel.addRange(r);
         onChange(serializeInput(editorRef.current));
       }
     }
   }
 
   function handleInput() {
-    onChange(serializeInput(editorRef.current));
+    const el = editorRef.current;
+    if (!el) return;
+
+    // Detect a freshly typed '^' and promote it to a <sup> element.
+    // We do this in onInput (after the char is in the DOM) rather than
+    // onKeyDown (before) because the Selection API is reliable here —
+    // the cursor is positioned right after the '^' we want to replace.
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && !isInsideSup(sel.anchorNode)) {
+      const range = sel.getRangeAt(0);
+      const container = range.startContainer;
+      const offset = range.startOffset;
+
+      if (
+        container.nodeType === Node.TEXT_NODE &&
+        container.parentNode &&
+        offset > 0 &&
+        container.textContent[offset - 1] === '^'
+      ) {
+        const text = container.textContent;
+        const before = text.slice(0, offset - 1);
+        const after = text.slice(offset);
+        const parent = container.parentNode;
+
+        const beforeNode = document.createTextNode(before);
+        const sup = document.createElement('sup');
+        const supText = document.createTextNode('');
+        sup.appendChild(supText);
+        const afterNode = document.createTextNode(after);
+
+        parent.insertBefore(beforeNode, container);
+        parent.insertBefore(sup, container);
+        parent.insertBefore(afterNode, container);
+        parent.removeChild(container);
+
+        placeCaret(sel, supText, 0);
+
+        onChange(serializeInput(el));
+        return;
+      }
+    }
+
+    onChange(serializeInput(el));
   }
 
   function handlePaste(e) {
@@ -147,7 +160,7 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
         onKeyDown={handleKeyDown}
         onInput={handleInput}
         onPaste={handlePaste}
-        className={`bg-surface-container-low border rounded-lg px-3 py-1.5 text-sm font-mono text-on-surface outline-none focus:border-primary/50 min-h-[2rem] leading-relaxed [&_sup]:align-super [&_sup]:text-[0.75em] ${borderClass}`}
+        className={`bg-surface-container-low border rounded-lg px-3 py-1.5 text-sm font-mono text-on-surface outline-none focus:border-primary/50 min-h-[2rem] leading-relaxed ${borderClass}`}
       />
       {!value && (
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-mono text-on-surface-variant/40 pointer-events-none select-none">

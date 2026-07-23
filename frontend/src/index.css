@@ -101,6 +101,13 @@ body {
 ::-webkit-scrollbar-track { background: #051424; }
 ::-webkit-scrollbar-thumb { background: #1c2b3c; border-radius: 10px; }
 
+/* Tailwind preflight strips browser defaults for sub/sup; restore them */
+[contenteditable] sup {
+  vertical-align: super;
+  font-size: 0.75em;
+  line-height: 0;
+}
+
 .chat-markdown p { margin: 0.35em 0; }
 .chat-markdown p:first-child { margin-top: 0; }
 .chat-markdown p:last-child { margin-bottom: 0; }

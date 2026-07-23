@@ -1,3 +1,5 @@
+export const ZWSP = '​';
+
 function escapeHtml(str) {
   return str
     .replace(/&/g, '&amp;')
@@ -7,6 +9,8 @@ function escapeHtml(str) {
 
 // Walk a contenteditable div's childNodes → plain expression string.
 // Text nodes pass through; <sup> nodes become ^{textContent}; all others skipped.
+// ZWSP is a caret-anchoring placeholder (see GraphFunctionInput) and never part
+// of the logical expression, so it's stripped here.
 export function serializeInput(el) {
   let result = '';
   for (const node of el.childNodes) {
@@ -16,7 +20,7 @@ export function serializeInput(el) {
       result += '^' + node.textContent;
     }
   }
-  return result;
+  return result.split(ZWSP).join('');
 }
 
 // Convert a plain expression string to innerHTML for a contenteditable div.

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { serializeInput, deserializeToHtml } from './graphInputUtils';
+import { serializeInput, deserializeToHtml, ZWSP } from './graphInputUtils';
 
 function makeEl(html) {
   const div = document.createElement('div');
@@ -26,6 +26,18 @@ describe('serializeInput', () => {
 
   it('returns empty string for empty element', () => {
     expect(serializeInput(makeEl(''))).toBe('');
+  });
+
+  it('strips the ZWSP caret-anchor placeholder from sup content', () => {
+    expect(serializeInput(makeEl(`x<sup>${ZWSP}2</sup>`))).toBe('x^2');
+  });
+
+  it('strips a bare ZWSP-only sup down to a bare caret', () => {
+    expect(serializeInput(makeEl(`x<sup>${ZWSP}</sup>`))).toBe('x^');
+  });
+
+  it('strips ZWSP from plain text segments too', () => {
+    expect(serializeInput(makeEl(`x<sup>${ZWSP}2</sup>${ZWSP}+1`))).toBe('x^2+1');
   });
 });
 
