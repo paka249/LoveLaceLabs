@@ -44,8 +44,18 @@ function insertCoefficientMultiplication(expr) {
   return expr.replace(COEFFICIENT_KEYWORD_PATTERN, '$1*$2');
 }
 
+function stripLhs(expr) {
+  let depth = 0;
+  for (let i = 0; i < expr.length; i++) {
+    if (expr[i] === '(') depth += 1;
+    else if (expr[i] === ')') depth -= 1;
+    else if (expr[i] === '=' && depth === 0) return expr.slice(i + 1).trim();
+  }
+  return expr;
+}
+
 function toJsExpression(expr) {
-  let js = normalizeImplicitMultiplication(insertCoefficientMultiplication(expr.trim()));
+  let js = normalizeImplicitMultiplication(insertCoefficientMultiplication(stripLhs(expr.trim())));
   for (const [pattern, replacement] of REPLACEMENTS) {
     js = js.replace(pattern, replacement);
   }

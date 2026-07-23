@@ -106,4 +106,16 @@ describe('compileExpression', () => {
     const f = compileExpression('2x^2');
     expect(f(3)).toBeCloseTo(18);
   });
+
+  it('accepts y = f(x) notation and graphs the RHS', () => {
+    const f = compileExpression('y = sin(x)');
+    expect(f(0)).toBeCloseTo(0);
+    expect(f(Math.PI / 2)).toBeCloseTo(1);
+  });
+
+  it('accepts f(x) = expr notation', () => {
+    const f = compileExpression('f(x) = x^2 + 1');
+    expect(f(2)).toBeCloseTo(5);
+    expect(f(0)).toBeCloseTo(1);
+  });
 });
