@@ -17,13 +17,24 @@ function placeCaret(sel, textNode, offset) {
   sel.addRange(r);
 }
 
-export default function GraphFunctionInput({ value, onChange, placeholder, isValid, onAddFunction }) {
+export default function GraphFunctionInput({
+  value,
+  onChange,
+  placeholder,
+  isValid,
+  onAddFunction,
+  onMoveUp,
+  onMoveDown,
+  onEditorRef,
+}) {
   const editorRef = useRef(null);
 
   useLayoutEffect(() => {
     const el = editorRef.current;
-    if (!el || !value) return;
-    el.innerHTML = deserializeToHtml(value);
+    if (!el) return;
+    if (value) el.innerHTML = deserializeToHtml(value);
+    onEditorRef?.(el);
+    return () => onEditorRef?.(null);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function isInsideSup(node) {
@@ -49,13 +60,34 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
   function handleKeyDown(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
-      onAddFunction?.();
+      onMoveDown?.();
+      return;
+    }
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      onMoveUp?.();
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      onMoveDown?.();
       return;
     }
 
     const sel = window.getSelection();
     if (!sel || !sel.rangeCount) return;
     const supEl = isInsideSup(sel.anchorNode);
+
+    // Space in an empty top-level input: jump to next/new function row
+    if (e.key === ' ' && !supEl) {
+      if (!serializeInput(editorRef.current).trim()) {
+        e.preventDefault();
+        onMoveDown?.();
+        return;
+      }
+    }
 
     if (e.key === ' ' && supEl) {
       e.preventDefault();
@@ -76,7 +108,7 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
     if (e.key === 'Backspace' && supEl) {
       // Content check (not offset) because a freshly-created sup carries a ZWSP
       // placeholder, so "empty" caret positions can be offset 0 or 1.
-      const supContent = supEl.textContent.replace(new RegExp(ZWSP, 'g'), '');
+      const supContent = supEl.textContent.split(ZWSP).join('');
       if (supContent === '') {
         e.preventDefault();
         const parent = supEl.parentNode;
@@ -160,7 +192,7 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
         onKeyDown={handleKeyDown}
         onInput={handleInput}
         onPaste={handlePaste}
-        className={`bg-surface-container-low border rounded-lg px-3 py-1.5 text-sm font-mono text-on-surface outline-none focus:border-primary/50 min-h-[2rem] leading-relaxed ${borderClass}`}
+        className={`bg-surface-container-low border rounded-lg px-3 py-1.5 text-sm font-mono text-on-surface outline-none focus:border-primary/50 min-h-[2rem] leading-relaxed overflow-x-auto whitespace-nowrap ${borderClass}`}
       />
       {!value && (
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-mono text-on-surface-variant/40 pointer-events-none select-none">

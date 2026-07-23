@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { compileExpression } from '../../utils/graphEvaluator';
 import GraphFunctionInput from './GraphFunctionInput';
 
@@ -37,6 +38,19 @@ function isValid(expression) {
 }
 
 export default function FunctionList({ functions, onChange }) {
+  // Map of fn.id → contenteditable DOM element, populated by each GraphFunctionInput
+  const inputRefs = useRef({});
+  // When true, focus the last function input on the next render (after a new row is added)
+  const focusLastRef = useRef(false);
+
+  useEffect(() => {
+    if (focusLastRef.current && functions.length > 0) {
+      focusLastRef.current = false;
+      const lastId = functions[functions.length - 1].id;
+      inputRefs.current[lastId]?.focus();
+    }
+  }, [functions]);
+
   function handleAdd() {
     onChange([...functions, createFunction(functions.length)]);
   }
@@ -55,7 +69,7 @@ export default function FunctionList({ functions, onChange }) {
 
   return (
     <div className="flex flex-col gap-2 p-4 overflow-y-auto h-full">
-      {functions.map((fn) => (
+      {functions.map((fn, idx) => (
         <div key={fn.id} className="flex items-center gap-2">
           <label
             className="w-3 h-3 rounded-full shrink-0 cursor-pointer block"
@@ -76,6 +90,21 @@ export default function FunctionList({ functions, onChange }) {
             placeholder="y = f(x)"
             isValid={isValid(fn.expression)}
             onAddFunction={handleAdd}
+            onEditorRef={(el) => {
+              if (el) inputRefs.current[fn.id] = el;
+              else delete inputRefs.current[fn.id];
+            }}
+            onMoveUp={() => {
+              if (idx > 0) inputRefs.current[functions[idx - 1].id]?.focus();
+            }}
+            onMoveDown={() => {
+              if (idx < functions.length - 1) {
+                inputRefs.current[functions[idx + 1].id]?.focus();
+              } else {
+                focusLastRef.current = true;
+                onChange([...functions, createFunction(functions.length)]);
+              }
+            }}
           />
           <button
             type="button"
