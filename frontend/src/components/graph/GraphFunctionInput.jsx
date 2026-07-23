@@ -88,6 +88,7 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
         e.preventDefault();
         exitSup(supEl);
       }
+      // early return is safe — no later branch in this handler matches ArrowRight
       return;
     }
 
@@ -112,6 +113,13 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
     onChange(serializeInput(editorRef.current));
   }
 
+  function handlePaste(e) {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
+    onChange(serializeInput(editorRef.current));
+  }
+
   const borderClass = isValid ? 'border-outline/30' : 'border-red-400/70';
 
   return (
@@ -125,6 +133,7 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
         aria-multiline="false"
         onKeyDown={handleKeyDown}
         onInput={handleInput}
+        onPaste={handlePaste}
         className={`bg-surface-container-low border rounded-lg px-3 py-1.5 text-sm font-mono text-on-surface outline-none focus:border-primary/50 min-h-[2rem] leading-relaxed ${borderClass}`}
       />
       {!value && (
