@@ -75,6 +75,7 @@ export default function FunctionList({ functions, onChange }) {
             onChange={(expr) => handleExpressionChange(fn.id, expr)}
             placeholder="y = f(x)"
             isValid={isValid(fn.expression)}
+            onAddFunction={handleAdd}
           />
           <button
             type="button"

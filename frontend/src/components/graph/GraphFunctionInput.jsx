@@ -1,19 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { serializeInput, deserializeToHtml } from './graphInputUtils';
 
-export default function GraphFunctionInput({ value, onChange, placeholder, isValid }) {
+export default function GraphFunctionInput({ value, onChange, placeholder, isValid, onAddFunction }) {
   const editorRef = useRef(null);
 
-  // Sync external value changes to DOM without fighting user edits
-  useEffect(() => {
+  // Initialize innerHTML exactly once on mount. After that the browser owns the DOM;
+  // we only emit via onChange. Syncing on every value change fights contenteditable
+  // and causes the caret/sup to disappear during React's effect cycle.
+  useLayoutEffect(() => {
     const el = editorRef.current;
-    if (!el) return;
-    const current = serializeInput(el);
-    if (current !== value) {
-      // deserializeToHtml only produces <sup> tags with HTML-escaped content — safe to set
-      el.innerHTML = deserializeToHtml(value);
-    }
-  }, [value]);
+    if (!el || !value) return;
+    el.innerHTML = deserializeToHtml(value);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function isInsideSup(node) {
     let cur = node;
@@ -25,28 +23,37 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
   }
 
   function insertSup() {
-    const sel = window.getSelection();
-    if (!sel || !sel.rangeCount) return;
-    const range = sel.getRangeAt(0);
-    range.deleteContents();
+    const el = editorRef.current;
+    if (!el) return;
+    if (document.activeElement !== el) el.focus();
 
-    const sup = document.createElement('sup');
+    // execCommand('insertHTML') inserts at the caret and correctly places the
+    // cursor after the inserted fragment. range.insertNode puts the cursor
+    // BEFORE the node per spec, causing typed characters to land outside the sup.
+    const uid = `sup-${Date.now()}`;
+    document.execCommand('insertHTML', false, `<sup data-uid="${uid}"></sup>`);
+
+    const supEl = el.querySelector(`sup[data-uid="${uid}"]`);
+    if (!supEl) return;
+    supEl.removeAttribute('data-uid');
+
     const textNode = document.createTextNode('');
-    sup.appendChild(textNode);
-    range.insertNode(sup);
+    supEl.appendChild(textNode);
 
-    // Ensure there is a text node after the sup to exit into
-    if (!sup.nextSibling || sup.nextSibling.nodeType !== Node.TEXT_NODE) {
-      sup.after(document.createTextNode(''));
+    if (!supEl.nextSibling || supEl.nextSibling.nodeType !== Node.TEXT_NODE) {
+      supEl.after(document.createTextNode(''));
     }
 
-    const newRange = document.createRange();
-    newRange.setStart(textNode, 0);
-    newRange.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(newRange);
+    const sel = window.getSelection();
+    if (sel) {
+      const r = document.createRange();
+      r.setStart(textNode, 0);
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
 
-    onChange(serializeInput(editorRef.current));
+    onChange(serializeInput(el));
   }
 
   function exitSup(supEl) {
@@ -67,6 +74,7 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
   function handleKeyDown(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
+      onAddFunction?.();
       return;
     }
 
@@ -139,7 +147,7 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
         onKeyDown={handleKeyDown}
         onInput={handleInput}
         onPaste={handlePaste}
-        className={`bg-surface-container-low border rounded-lg px-3 py-1.5 text-sm font-mono text-on-surface outline-none focus:border-primary/50 min-h-[2rem] leading-relaxed ${borderClass}`}
+        className={`bg-surface-container-low border rounded-lg px-3 py-1.5 text-sm font-mono text-on-surface outline-none focus:border-primary/50 min-h-[2rem] leading-relaxed [&_sup]:align-super [&_sup]:text-[0.75em] ${borderClass}`}
       />
       {!value && (
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-mono text-on-surface-variant/40 pointer-events-none select-none">
