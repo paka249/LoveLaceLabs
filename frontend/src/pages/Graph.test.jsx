@@ -28,7 +28,7 @@ describe('Graph page', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getAllByPlaceholderText('y = f(x)')).toHaveLength(1);
+    expect(screen.getAllByRole('textbox')).toHaveLength(1);
     expect(container.querySelector('canvas')).toBeInTheDocument();
   });
 });

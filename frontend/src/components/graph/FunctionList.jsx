@@ -1,4 +1,5 @@
 import { compileExpression } from '../../utils/graphEvaluator';
+import GraphFunctionInput from './GraphFunctionInput';
 
 const COLOR_PALETTE = [
   '#5af0b3',
@@ -44,6 +45,10 @@ export default function FunctionList({ functions, onChange }) {
     onChange(functions.map((fn) => (fn.id === id ? { ...fn, expression } : fn)));
   }
 
+  function handleColorChange(id, color) {
+    onChange(functions.map((fn) => (fn.id === id ? { ...fn, color } : fn)));
+  }
+
   function handleRemove(id) {
     onChange(functions.filter((fn) => fn.id !== id));
   }
@@ -52,19 +57,24 @@ export default function FunctionList({ functions, onChange }) {
     <div className="flex flex-col gap-2 p-4 overflow-y-auto h-full">
       {functions.map((fn) => (
         <div key={fn.id} className="flex items-center gap-2">
-          <span
-            className="w-3 h-3 rounded-full shrink-0"
+          <label
+            className="w-3 h-3 rounded-full shrink-0 cursor-pointer block"
             style={{ backgroundColor: fn.color }}
-            aria-hidden="true"
-          />
-          <input
-            type="text"
+            aria-label={`Change color for function ${fn.id}`}
+          >
+            <input
+              type="color"
+              value={fn.color}
+              onChange={(e) => handleColorChange(fn.id, e.target.value)}
+              className="sr-only"
+              tabIndex={-1}
+            />
+          </label>
+          <GraphFunctionInput
             value={fn.expression}
-            onChange={(e) => handleExpressionChange(fn.id, e.target.value)}
+            onChange={(expr) => handleExpressionChange(fn.id, expr)}
             placeholder="y = f(x)"
-            className={`flex-1 bg-surface-container-low border rounded-lg px-3 py-1.5 text-sm font-mono text-on-surface outline-none focus:border-primary/50 ${
-              isValid(fn.expression) ? 'border-outline/30' : 'border-red-400/70'
-            }`}
+            isValid={isValid(fn.expression)}
           />
           <button
             type="button"

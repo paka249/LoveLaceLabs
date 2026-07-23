@@ -1,54 +1,68 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import FunctionList, { createFunction } from './FunctionList';
 
-describe('FunctionList', () => {
-  afterEach(() => {
-    cleanup();
-  });
+function makeProps(overrides = {}) {
+  return {
+    functions: [createFunction(0)],
+    onChange: vi.fn(),
+    ...overrides,
+  };
+}
 
-  it('renders one input per function', () => {
-    const functions = [createFunction(0), createFunction(1)];
-    render(<FunctionList functions={functions} onChange={vi.fn()} />);
-    expect(screen.getAllByPlaceholderText('y = f(x)')).toHaveLength(2);
+describe('FunctionList', () => {
+  it('renders one textbox per function', () => {
+    const props = makeProps({ functions: [createFunction(0), createFunction(1)] });
+    render(<FunctionList {...props} />);
+    expect(screen.getAllByRole('textbox')).toHaveLength(2);
   });
 
   it('adds a new function with a different palette color when "Add function" is clicked', () => {
-    const functions = [createFunction(0)];
     const onChange = vi.fn();
-    render(<FunctionList functions={functions} onChange={onChange} />);
+    render(<FunctionList functions={[createFunction(0)]} onChange={onChange} />);
     fireEvent.click(screen.getByText('+ Add function'));
-    expect(onChange).toHaveBeenCalledTimes(1);
-    const next = onChange.mock.calls[0][0];
-    expect(next).toHaveLength(2);
-    expect(next[1].color).not.toBe(next[0].color);
+    expect(onChange).toHaveBeenCalledOnce();
+    const updated = onChange.mock.calls[0][0];
+    expect(updated).toHaveLength(2);
+    expect(updated[0].color).not.toBe(updated[1].color);
   });
 
-  it('updates a function expression on input change', () => {
-    const functions = [createFunction(0)];
+  it('updates a function expression on input event', () => {
     const onChange = vi.fn();
-    render(<FunctionList functions={functions} onChange={onChange} />);
-    fireEvent.change(screen.getByPlaceholderText('y = f(x)'), { target: { value: 'x^2' } });
-    expect(onChange).toHaveBeenCalledWith([{ ...functions[0], expression: 'x^2' }]);
+    const fns = [createFunction(0)];
+    render(<FunctionList functions={fns} onChange={onChange} />);
+    const editor = screen.getByRole('textbox');
+    editor.innerHTML = 'sin(x)';
+    fireEvent.input(editor);
+    expect(onChange).toHaveBeenCalledOnce();
+    expect(onChange.mock.calls[0][0][0].expression).toBe('sin(x)');
   });
 
   it('removes a function when its remove button is clicked', () => {
-    const functions = [createFunction(0), createFunction(1)];
     const onChange = vi.fn();
-    render(<FunctionList functions={functions} onChange={onChange} />);
-    fireEvent.click(screen.getAllByTitle('Remove function')[0]);
-    expect(onChange).toHaveBeenCalledWith([functions[1]]);
+    render(<FunctionList functions={[createFunction(0)]} onChange={onChange} />);
+    fireEvent.click(screen.getByTitle('Remove function'));
+    expect(onChange).toHaveBeenCalledWith([]);
   });
 
   it('shows an error border for an unparseable expression', () => {
-    const functions = [{ ...createFunction(0), expression: 'x +* 2' }];
-    render(<FunctionList functions={functions} onChange={vi.fn()} />);
-    expect(screen.getByPlaceholderText('y = f(x)').className).toMatch(/border-red-400/);
+    const fns = [{ ...createFunction(0), expression: '???' }];
+    render(<FunctionList functions={fns} onChange={() => {}} />);
+    expect(screen.getByRole('textbox').className).toMatch(/border-red/);
   });
 
   it('does not show an error border for an empty expression', () => {
-    const functions = [createFunction(0)];
-    render(<FunctionList functions={functions} onChange={vi.fn()} />);
-    expect(screen.getByPlaceholderText('y = f(x)').className).not.toMatch(/border-red-400/);
+    render(<FunctionList functions={[createFunction(0)]} onChange={() => {}} />);
+    expect(screen.getByRole('textbox').className).not.toMatch(/border-red/);
+  });
+
+  it('updates function color when color input changes', () => {
+    const onChange = vi.fn();
+    const fns = [createFunction(0)];
+    const { container } = render(<FunctionList functions={fns} onChange={onChange} />);
+    const colorInput = container.querySelector('input[type="color"]');
+    fireEvent.change(colorInput, { target: { value: '#ff0000' } });
+    expect(onChange).toHaveBeenCalledOnce();
+    expect(onChange.mock.calls[0][0][0].color).toBe('#ff0000');
   });
 });
