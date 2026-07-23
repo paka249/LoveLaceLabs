@@ -1,10 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { compileExpression } from '../../utils/graphEvaluator';
 
-const VIEWPORT = { xMin: -10, xMax: 10, yMin: -10, yMax: 10 };
+const BASE_RANGE = 10;
 const GRID_COLOR = 'rgba(133, 148, 139, 0.15)';
 const AXIS_COLOR = 'rgba(133, 148, 139, 0.6)';
 const LABEL_COLOR = '#bbcac0';
+
+function getViewport(width, height) {
+  if (width >= height) {
+    const xRange = BASE_RANGE * (width / height);
+    return { xMin: -xRange, xMax: xRange, yMin: -BASE_RANGE, yMax: BASE_RANGE };
+  }
+  const yRange = BASE_RANGE * (height / width);
+  return { xMin: -BASE_RANGE, xMax: BASE_RANGE, yMin: -yRange, yMax: yRange };
+}
 
 export default function GraphCanvas({ functions }) {
   const canvasRef = useRef(null);
@@ -28,30 +37,28 @@ export default function GraphCanvas({ functions }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
 
-      const size = Math.min(width, height);
-      const offsetX = (width - size) / 2;
-      const offsetY = (height - size) / 2;
+      const vp = getViewport(width, height);
 
       function toPixel(x, y) {
-        const px = offsetX + ((x - VIEWPORT.xMin) / (VIEWPORT.xMax - VIEWPORT.xMin)) * size;
-        const py = offsetY + (1 - (y - VIEWPORT.yMin) / (VIEWPORT.yMax - VIEWPORT.yMin)) * size;
+        const px = ((x - vp.xMin) / (vp.xMax - vp.xMin)) * width;
+        const py = (1 - (y - vp.yMin) / (vp.yMax - vp.yMin)) * height;
         return [px, py];
       }
 
       ctx.strokeStyle = GRID_COLOR;
       ctx.lineWidth = 1;
-      for (let gx = Math.ceil(VIEWPORT.xMin); gx <= VIEWPORT.xMax; gx += 1) {
+      for (let gx = Math.ceil(vp.xMin); gx <= vp.xMax; gx += 1) {
         const [px] = toPixel(gx, 0);
         ctx.beginPath();
-        ctx.moveTo(px, offsetY);
-        ctx.lineTo(px, offsetY + size);
+        ctx.moveTo(px, 0);
+        ctx.lineTo(px, height);
         ctx.stroke();
       }
-      for (let gy = Math.ceil(VIEWPORT.yMin); gy <= VIEWPORT.yMax; gy += 1) {
+      for (let gy = Math.ceil(vp.yMin); gy <= vp.yMax; gy += 1) {
         const [, py] = toPixel(0, gy);
         ctx.beginPath();
-        ctx.moveTo(offsetX, py);
-        ctx.lineTo(offsetX + size, py);
+        ctx.moveTo(0, py);
+        ctx.lineTo(width, py);
         ctx.stroke();
       }
 
@@ -59,24 +66,24 @@ export default function GraphCanvas({ functions }) {
       ctx.lineWidth = 1.5;
       const [originX, originY] = toPixel(0, 0);
       ctx.beginPath();
-      ctx.moveTo(offsetX, originY);
-      ctx.lineTo(offsetX + size, originY);
-      ctx.moveTo(originX, offsetY);
-      ctx.lineTo(originX, offsetY + size);
+      ctx.moveTo(0, originY);
+      ctx.lineTo(width, originY);
+      ctx.moveTo(originX, 0);
+      ctx.lineTo(originX, height);
       ctx.stroke();
 
       ctx.fillStyle = LABEL_COLOR;
       ctx.font = '11px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      for (let gx = Math.ceil(VIEWPORT.xMin); gx <= VIEWPORT.xMax; gx += 1) {
+      for (let gx = Math.ceil(vp.xMin); gx <= vp.xMax; gx += 1) {
         if (gx === 0) continue;
         const [px] = toPixel(gx, 0);
         ctx.fillText(String(gx), px, originY + 4);
       }
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      for (let gy = Math.ceil(VIEWPORT.yMin); gy <= VIEWPORT.yMax; gy += 1) {
+      for (let gy = Math.ceil(vp.yMin); gy <= vp.yMax; gy += 1) {
         if (gy === 0) continue;
         const [, py] = toPixel(0, gy);
         ctx.fillText(String(gy), originX + 4, py);
@@ -95,10 +102,10 @@ export default function GraphCanvas({ functions }) {
         ctx.lineWidth = 2;
         ctx.beginPath();
         let penDown = false;
-        for (let px = 0; px <= size; px += 1) {
-          const x = VIEWPORT.xMin + (px / size) * (VIEWPORT.xMax - VIEWPORT.xMin);
+        for (let px = 0; px <= width; px += 1) {
+          const x = vp.xMin + (px / width) * (vp.xMax - vp.xMin);
           const y = evaluate(x);
-          if (!Number.isFinite(y) || y < VIEWPORT.yMin - 1 || y > VIEWPORT.yMax + 1) {
+          if (!Number.isFinite(y) || y < vp.yMin - 1 || y > vp.yMax + 1) {
             penDown = false;
             continue;
           }
