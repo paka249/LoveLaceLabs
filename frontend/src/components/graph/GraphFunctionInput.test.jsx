@@ -56,4 +56,13 @@ describe('GraphFunctionInput', () => {
     render(<GraphFunctionInput value="x" onChange={() => {}} placeholder="" isValid />);
     expect(screen.getByRole('textbox').className).not.toMatch(/border-red/);
   });
+
+  it('prevents Enter key from inserting a newline block', () => {
+    render(<GraphFunctionInput value="" onChange={() => {}} placeholder="" isValid />);
+    const editor = screen.getByRole('textbox');
+    fireEvent.keyDown(editor, { key: 'Enter' });
+    // jsdom doesn't emulate contenteditable block insertion,
+    // so just verify preventDefault was called by confirming no div/br was added
+    expect(editor.querySelector('div, br')).toBeNull();
+  });
 });

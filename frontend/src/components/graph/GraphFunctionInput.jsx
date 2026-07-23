@@ -65,6 +65,11 @@ export default function GraphFunctionInput({ value, onChange, placeholder, isVal
   }
 
   function handleKeyDown(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      return;
+    }
+
     if (e.key === '^') {
       e.preventDefault();
       insertSup();
