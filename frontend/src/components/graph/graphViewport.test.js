@@ -10,6 +10,10 @@ import {
   formatGridLabel,
   zoomViewport,
   panViewport,
+  pixelToWorld,
+  worldToPixel,
+  formatCoordinate,
+  findNearestCurvePoint,
 } from './graphViewport';
 
 describe('halfRanges', () => {
@@ -233,5 +237,129 @@ describe('panViewport', () => {
     const zoomedIn = panViewport({ centerX: 0, centerY: 0, range: 1 }, { dx: 50, dy: 0, ...dims });
     const zoomedOut = panViewport({ centerX: 0, centerY: 0, range: 100 }, { dx: 50, dy: 0, ...dims });
     expect(Math.abs(zoomedIn.centerX)).toBeLessThan(Math.abs(zoomedOut.centerX));
+  });
+});
+
+describe('pixelToWorld / worldToPixel', () => {
+  const view = { centerX: 2, centerY: -1, range: DEFAULT_RANGE };
+  const dims = { width: 400, height: 300 };
+
+  it('round-trips a pixel through world-space and back', () => {
+    const world = pixelToWorld(dims.width, dims.height, view, 137, 92);
+    const pixel = worldToPixel(dims.width, dims.height, view, world.x, world.y);
+    expect(pixel.px).toBeCloseTo(137, 9);
+    expect(pixel.py).toBeCloseTo(92, 9);
+  });
+
+  it('maps the canvas center pixel to the view center', () => {
+    const world = pixelToWorld(dims.width, dims.height, view, dims.width / 2, dims.height / 2);
+    expect(world.x).toBeCloseTo(view.centerX, 9);
+    expect(world.y).toBeCloseTo(view.centerY, 9);
+  });
+
+  it('maps world (0,0) to the same pixel the draw loop uses for the origin', () => {
+    const pixel = worldToPixel(dims.width, dims.height, { centerX: 0, centerY: 0, range: DEFAULT_RANGE }, 0, 0);
+    expect(pixel.px).toBeCloseTo(dims.width / 2, 9);
+    expect(pixel.py).toBeCloseTo(dims.height / 2, 9);
+  });
+});
+
+describe('formatCoordinate', () => {
+  it('formats a whole number without decimals', () => {
+    expect(formatCoordinate(5)).toBe('5');
+    expect(formatCoordinate(-3)).toBe('-3');
+  });
+
+  it('trims trailing zeros from a decimal value', () => {
+    expect(formatCoordinate(1.5)).toBe('1.5');
+    expect(formatCoordinate(0.1)).toBe('0.1');
+  });
+
+  it('does not leak floating-point noise', () => {
+    expect(formatCoordinate(0.1 + 0.2)).toBe('0.3');
+  });
+
+  it('caps precision at 4 decimal places', () => {
+    expect(formatCoordinate(1 / 3)).toBe('0.3333');
+  });
+
+  it('normalizes negative zero to "0"', () => {
+    expect(formatCoordinate(-0)).toBe('0');
+  });
+
+  it('returns an em dash for non-finite values', () => {
+    expect(formatCoordinate(NaN)).toBe('—');
+    expect(formatCoordinate(Infinity)).toBe('—');
+  });
+});
+
+describe('findNearestCurvePoint', () => {
+  const view = { centerX: 0, centerY: 0, range: DEFAULT_RANGE };
+  const dims = { width: 400, height: 300 };
+  // f(x) = x, so at the view center (world 0,0) the curve passes through the
+  // exact center pixel — a convenient, easy-to-reason-about fixture.
+  const line = [{ id: 'line', expression: 'x', color: '#5af0b3', visible: true }];
+
+  it('finds the function when clicking exactly on its curve', () => {
+    const result = findNearestCurvePoint(line, view, dims.width, dims.height, dims.width / 2, dims.height / 2, 10);
+    expect(result).toEqual({ functionId: 'line', x: 0 });
+  });
+
+  it('finds the function when clicking within tolerance of its curve', () => {
+    const result = findNearestCurvePoint(
+      line,
+      view,
+      dims.width,
+      dims.height,
+      dims.width / 2,
+      dims.height / 2 + 5,
+      10
+    );
+    expect(result?.functionId).toBe('line');
+  });
+
+  it('returns null when the click is farther than the tolerance from any curve', () => {
+    const result = findNearestCurvePoint(
+      line,
+      view,
+      dims.width,
+      dims.height,
+      dims.width / 2,
+      dims.height / 2 + 50,
+      10
+    );
+    expect(result).toBeNull();
+  });
+
+  it('returns null for a click on empty space with no functions', () => {
+    expect(findNearestCurvePoint([], view, dims.width, dims.height, 200, 150, 10)).toBeNull();
+  });
+
+  it('ignores a hidden function even if the click is exactly on where its curve would be', () => {
+    const hidden = [{ ...line[0], visible: false }];
+    const result = findNearestCurvePoint(hidden, view, dims.width, dims.height, dims.width / 2, dims.height / 2, 10);
+    expect(result).toBeNull();
+  });
+
+  it('ignores an empty or invalid expression instead of throwing', () => {
+    const broken = [
+      { id: 'empty', expression: '', color: '#5af0b3', visible: true },
+      { id: 'invalid', expression: 'x +* 2', color: '#60a5fa', visible: true },
+    ];
+    expect(() =>
+      findNearestCurvePoint(broken, view, dims.width, dims.height, dims.width / 2, dims.height / 2, 10)
+    ).not.toThrow();
+    expect(findNearestCurvePoint(broken, view, dims.width, dims.height, dims.width / 2, dims.height / 2, 10)).toBeNull();
+  });
+
+  it('picks whichever of two overlapping curves is actually closer to the click', () => {
+    const two = [
+      { id: 'near', expression: 'x', color: '#5af0b3', visible: true },
+      { id: 'far', expression: 'x+5', color: '#60a5fa', visible: true },
+    ];
+    // Click a couple pixels off the "near" line (y=x through the center) —
+    // both curves are within a generous tolerance, but "near" is closer.
+    const result = findNearestCurvePoint(two, view, dims.width, dims.height, dims.width / 2, dims.height / 2 + 3, 200);
+    expect(result?.functionId).toBe('near');
   });
 });

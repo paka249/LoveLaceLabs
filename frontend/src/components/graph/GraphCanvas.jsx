@@ -5,24 +5,42 @@ import {
   getViewport,
   gridStepForViewport,
   formatGridLabel,
+  formatCoordinate,
   zoomViewport,
   panViewport,
+  findNearestCurvePoint,
 } from './graphViewport';
 
 const GRID_COLOR = 'rgba(133, 148, 139, 0.15)';
 const AXIS_COLOR = 'rgba(133, 148, 139, 0.6)';
 const LABEL_COLOR = '#bbcac0';
+const POINT_LABEL_BG = 'rgba(5, 20, 36, 0.92)';
 // Target spacing between grid lines, in screen pixels — generous enough that
 // axis labels (11px monospace) don't crowd each other at any zoom level.
 const TARGET_GRID_PX = 80;
 const LABEL_MARGIN = 4;
 const LABEL_ROW_HEIGHT = 14;
 const LABEL_MAX_WIDTH = 60;
+const POINT_RADIUS = 4;
+// How close (in screen px) a click needs to land to a curve to select it.
+const HIT_TOLERANCE_PX = 12;
+// A pointer down→up with less movement than this counts as a click (select a
+// point) rather than a drag (pan) — real pointers wobble a pixel or two even
+// on an intentional click.
+const CLICK_MOVE_THRESHOLD_PX = 4;
 
 export default function GraphCanvas({ functions }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const [view, setView] = useState({ centerX: 0, centerY: 0, range: DEFAULT_RANGE });
+  const [selectedPoint, setSelectedPoint] = useState(null);
+  // The pan/zoom/click listeners below are attached once (stable deps) and
+  // read these refs instead of `view`/`functions` directly, so they always
+  // see fresh values without needing to re-attach on every render.
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const functionsRef = useRef(functions);
+  functionsRef.current = functions;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -139,6 +157,50 @@ export default function GraphCanvas({ functions }) {
         }
         ctx.stroke();
       });
+
+      if (selectedPoint) {
+        const fn = functions.find((f) => f.id === selectedPoint.functionId);
+        if (fn && fn.visible !== false && fn.expression.trim()) {
+          try {
+            const evaluate = compileExpression(fn.expression);
+            const y = evaluate(selectedPoint.x);
+            if (Number.isFinite(y)) {
+              const [px, py] = toPixel(selectedPoint.x, y);
+
+              ctx.beginPath();
+              ctx.arc(px, py, POINT_RADIUS, 0, Math.PI * 2);
+              ctx.fillStyle = fn.color;
+              ctx.fill();
+              ctx.lineWidth = 1.5;
+              ctx.strokeStyle = '#051424';
+              ctx.stroke();
+
+              const label = `(${formatCoordinate(selectedPoint.x)}, ${formatCoordinate(y)})`;
+              ctx.font = '11px "JetBrains Mono", monospace';
+              const pad = 5;
+              const boxW = ctx.measureText(label).width + pad * 2;
+              const boxH = 18;
+              const boxX = Math.min(Math.max(px + 10, LABEL_MARGIN), width - boxW - LABEL_MARGIN);
+              const boxY = Math.min(Math.max(py - boxH - 8, LABEL_MARGIN), height - boxH - LABEL_MARGIN);
+
+              ctx.beginPath();
+              ctx.roundRect(boxX, boxY, boxW, boxH, 4);
+              ctx.fillStyle = POINT_LABEL_BG;
+              ctx.fill();
+              ctx.strokeStyle = fn.color;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+
+              ctx.fillStyle = LABEL_COLOR;
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(label, boxX + pad, boxY + boxH / 2 + 1);
+            }
+          } catch {
+            // The selected function became invalid since selection; just skip the marker.
+          }
+        }
+      }
     }
 
     draw();
@@ -146,7 +208,7 @@ export default function GraphCanvas({ functions }) {
     const resizeObserver = new ResizeObserver(draw);
     resizeObserver.observe(container);
     return () => resizeObserver.disconnect();
-  }, [functions, view]);
+  }, [functions, view, selectedPoint]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -166,17 +228,22 @@ export default function GraphCanvas({ functions }) {
       );
     }
 
-    // Hold-and-drag to pan. Pointer Events (rather than separate mouse/touch
-    // listeners) cover mouse, touch, and pen in one path, and pointer capture
-    // keeps the drag going even if the cursor leaves the canvas mid-gesture.
-    const drag = { active: false, lastX: 0, lastY: 0 };
+    // Hold-and-drag to pan, click (no/tiny movement) to select a point on a
+    // curve. Pointer Events (rather than separate mouse/touch listeners)
+    // cover mouse, touch, and pen in one path, and pointer capture keeps the
+    // drag going even if the cursor leaves the canvas mid-gesture.
+    // (setPointerCapture/hasPointerCapture are optional-chained: every real
+    // browser has them, but jsdom's test environment doesn't.)
+    const drag = { active: false, startX: 0, startY: 0, lastX: 0, lastY: 0 };
 
     function handlePointerDown(e) {
       if (e.button !== 0) return;
       drag.active = true;
+      drag.startX = e.clientX;
+      drag.startY = e.clientY;
       drag.lastX = e.clientX;
       drag.lastY = e.clientY;
-      canvas.setPointerCapture(e.pointerId);
+      canvas.setPointerCapture?.(e.pointerId);
       canvas.style.cursor = 'grabbing';
     }
 
@@ -194,20 +261,38 @@ export default function GraphCanvas({ functions }) {
     function endDrag(e) {
       if (!drag.active) return;
       drag.active = false;
-      if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+      if (canvas.hasPointerCapture?.(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
       canvas.style.cursor = 'grab';
+    }
+
+    function handlePointerUp(e) {
+      const totalMove = Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY);
+      const wasDragging = drag.active;
+      endDrag(e);
+      if (!wasDragging || totalMove > CLICK_MOVE_THRESHOLD_PX) return;
+
+      const result = findNearestCurvePoint(
+        functionsRef.current,
+        viewRef.current,
+        container.clientWidth,
+        container.clientHeight,
+        e.offsetX,
+        e.offsetY,
+        HIT_TOLERANCE_PX
+      );
+      setSelectedPoint(result);
     }
 
     canvas.addEventListener('wheel', handleWheel, { passive: false });
     canvas.addEventListener('pointerdown', handlePointerDown);
     canvas.addEventListener('pointermove', handlePointerMove);
-    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointerup', handlePointerUp);
     canvas.addEventListener('pointercancel', endDrag);
     return () => {
       canvas.removeEventListener('wheel', handleWheel);
       canvas.removeEventListener('pointerdown', handlePointerDown);
       canvas.removeEventListener('pointermove', handlePointerMove);
-      canvas.removeEventListener('pointerup', endDrag);
+      canvas.removeEventListener('pointerup', handlePointerUp);
       canvas.removeEventListener('pointercancel', endDrag);
     };
   }, []);

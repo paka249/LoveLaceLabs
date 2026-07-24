@@ -1,3 +1,5 @@
+import { compileExpression } from '../../utils/graphEvaluator';
+
 export const DEFAULT_RANGE = 10;
 export const MIN_RANGE = 1e-6;
 export const MAX_RANGE = 1e9;
@@ -32,6 +34,25 @@ export function getViewport(width, height, view) {
     xMax: view.centerX + xHalf,
     yMin: view.centerY - yHalf,
     yMax: view.centerY + yHalf,
+  };
+}
+
+// Canvas-pixel ↔ world-coordinate conversion, shared by drawing and
+// interaction (click hit-testing, zoom-toward-cursor, etc.) so they can never
+// disagree about where a point on screen actually is in graph-space.
+export function pixelToWorld(width, height, view, px, py) {
+  const vp = getViewport(width, height, view);
+  return {
+    x: vp.xMin + (px / width) * (vp.xMax - vp.xMin),
+    y: vp.yMin + (1 - py / height) * (vp.yMax - vp.yMin),
+  };
+}
+
+export function worldToPixel(width, height, view, x, y) {
+  const vp = getViewport(width, height, view);
+  return {
+    px: ((x - vp.xMin) / (vp.xMax - vp.xMin)) * width,
+    py: (1 - (y - vp.yMin) / (vp.yMax - vp.yMin)) * height,
   };
 }
 
@@ -75,9 +96,7 @@ export function zoomViewport(view, { deltaY, offsetX, offsetY, width, height }) 
   const factor = Math.exp(clampedDelta * ZOOM_SENSITIVITY);
   const newRange = clamp(view.range * factor, MIN_RANGE, MAX_RANGE);
 
-  const vp = getViewport(width, height, view);
-  const worldX = vp.xMin + (offsetX / width) * (vp.xMax - vp.xMin);
-  const worldY = vp.yMin + (1 - offsetY / height) * (vp.yMax - vp.yMin);
+  const { x: worldX, y: worldY } = pixelToWorld(width, height, view, offsetX, offsetY);
 
   const { xHalf, yHalf } = halfRanges(width, height, newRange);
   const centerX = worldX - (offsetX / width - 0.5) * 2 * xHalf;
@@ -97,4 +116,46 @@ export function panViewport(view, { dx, dy, width, height }) {
     centerY: view.centerY + dy / pixelsPerUnit,
     range: view.range,
   };
+}
+
+// Format a coordinate for the click-to-inspect point readout. Unlike
+// formatGridLabel this isn't step-aware (a single clicked point has no
+// associated grid step) — just enough precision to be useful without
+// floating-point noise, trimmed of trailing zeros.
+export function formatCoordinate(value) {
+  if (!Number.isFinite(value)) return '—';
+  const normalized = Object.is(value, -0) ? 0 : value;
+  return String(Number(normalized.toFixed(4)));
+}
+
+// Find the curve nearest a click, for "click a function to see its
+// coordinate point". Evaluates every visible function at the clicked x (same
+// world-x the draw loop would use for that pixel column) and picks whichever
+// curve passes closest to the click in screen space, provided it's within
+// tolerancePx — clicking empty space (or too far from any curve) finds none.
+export function findNearestCurvePoint(functions, view, width, height, clickPx, clickPy, tolerancePx) {
+  const { x: worldX } = pixelToWorld(width, height, view, clickPx, clickPy);
+
+  let best = null;
+  for (const fn of functions) {
+    if (fn.visible === false || !fn.expression?.trim()) continue;
+
+    let evaluate;
+    try {
+      evaluate = compileExpression(fn.expression);
+    } catch {
+      continue;
+    }
+
+    const y = evaluate(worldX);
+    if (!Number.isFinite(y)) continue;
+
+    const { py } = worldToPixel(width, height, view, worldX, y);
+    const dist = Math.abs(py - clickPy);
+    if (dist <= tolerancePx && (!best || dist < best.dist)) {
+      best = { functionId: fn.id, x: worldX, dist };
+    }
+  }
+
+  return best ? { functionId: best.functionId, x: best.x } : null;
 }
