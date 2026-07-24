@@ -9,6 +9,7 @@ import {
   gridStepForViewport,
   formatGridLabel,
   zoomViewport,
+  panViewport,
 } from './graphViewport';
 
 describe('halfRanges', () => {
@@ -175,5 +176,62 @@ describe('zoomViewport', () => {
     const huge = zoomViewport(base, { deltaY: 100000, offsetX: 200, offsetY: 150, ...dims });
     const capped = zoomViewport(base, { deltaY: 500, offsetX: 200, offsetY: 150, ...dims });
     expect(huge.range).toBeCloseTo(capped.range, 9);
+  });
+});
+
+describe('panViewport', () => {
+  const base = { centerX: 0, centerY: 0, range: DEFAULT_RANGE };
+  const dims = { width: 400, height: 300 };
+
+  it('dragging right moves the center left, so content follows the drag', () => {
+    const next = panViewport(base, { dx: 50, dy: 0, ...dims });
+    expect(next.centerX).toBeLessThan(base.centerX);
+  });
+
+  it('dragging down moves the center up (screen-down is +py, world-up is +y)', () => {
+    const next = panViewport(base, { dx: 0, dy: 50, ...dims });
+    expect(next.centerY).toBeGreaterThan(base.centerY);
+  });
+
+  it('does not change the zoom range', () => {
+    const next = panViewport(base, { dx: 50, dy: -30, ...dims });
+    expect(next.range).toBe(base.range);
+  });
+
+  it('a zero-delta drag is a no-op', () => {
+    const next = panViewport(base, { dx: 0, dy: 0, ...dims });
+    expect(next.centerX).toBeCloseTo(base.centerX, 9);
+    expect(next.centerY).toBeCloseTo(base.centerY, 9);
+  });
+
+  it('the world point under the cursor at drag-start ends up under the cursor at drag-end', () => {
+    // Same "fixed point" guarantee zoomViewport has, but for a drag instead
+    // of a wheel tick: whatever was under the pointer when the drag started
+    // should be under the pointer (which moved by dx,dy) when it ends.
+    const cursorStart = { x: 100, y: 120 };
+    const vpBefore = getViewport(dims.width, dims.height, base);
+    const worldUnderCursor = {
+      x: vpBefore.xMin + (cursorStart.x / dims.width) * (vpBefore.xMax - vpBefore.xMin),
+      y: vpBefore.yMin + (1 - cursorStart.y / dims.height) * (vpBefore.yMax - vpBefore.yMin),
+    };
+
+    const dx = 40;
+    const dy = -25;
+    const next = panViewport(base, { dx, dy, ...dims });
+    const cursorEnd = { x: cursorStart.x + dx, y: cursorStart.y + dy };
+    const vpAfter = getViewport(dims.width, dims.height, next);
+    const worldUnderCursorEnd = {
+      x: vpAfter.xMin + (cursorEnd.x / dims.width) * (vpAfter.xMax - vpAfter.xMin),
+      y: vpAfter.yMin + (1 - cursorEnd.y / dims.height) * (vpAfter.yMax - vpAfter.yMin),
+    };
+
+    expect(worldUnderCursorEnd.x).toBeCloseTo(worldUnderCursor.x, 9);
+    expect(worldUnderCursorEnd.y).toBeCloseTo(worldUnderCursor.y, 9);
+  });
+
+  it('panning more at a zoomed-in range moves the world less than the same drag at a zoomed-out range', () => {
+    const zoomedIn = panViewport({ centerX: 0, centerY: 0, range: 1 }, { dx: 50, dy: 0, ...dims });
+    const zoomedOut = panViewport({ centerX: 0, centerY: 0, range: 100 }, { dx: 50, dy: 0, ...dims });
+    expect(Math.abs(zoomedIn.centerX)).toBeLessThan(Math.abs(zoomedOut.centerX));
   });
 });

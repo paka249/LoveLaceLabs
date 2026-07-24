@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { compileExpression } from '../../utils/graphEvaluator';
-import { DEFAULT_RANGE, getViewport, gridStepForViewport, formatGridLabel, zoomViewport } from './graphViewport';
+import {
+  DEFAULT_RANGE,
+  getViewport,
+  gridStepForViewport,
+  formatGridLabel,
+  zoomViewport,
+  panViewport,
+} from './graphViewport';
 
 const GRID_COLOR = 'rgba(133, 148, 139, 0.15)';
 const AXIS_COLOR = 'rgba(133, 148, 139, 0.6)';
@@ -159,13 +166,55 @@ export default function GraphCanvas({ functions }) {
       );
     }
 
+    // Hold-and-drag to pan. Pointer Events (rather than separate mouse/touch
+    // listeners) cover mouse, touch, and pen in one path, and pointer capture
+    // keeps the drag going even if the cursor leaves the canvas mid-gesture.
+    const drag = { active: false, lastX: 0, lastY: 0 };
+
+    function handlePointerDown(e) {
+      if (e.button !== 0) return;
+      drag.active = true;
+      drag.lastX = e.clientX;
+      drag.lastY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+      canvas.style.cursor = 'grabbing';
+    }
+
+    function handlePointerMove(e) {
+      if (!drag.active) return;
+      const dx = e.clientX - drag.lastX;
+      const dy = e.clientY - drag.lastY;
+      drag.lastX = e.clientX;
+      drag.lastY = e.clientY;
+      setView((current) =>
+        panViewport(current, { dx, dy, width: container.clientWidth, height: container.clientHeight })
+      );
+    }
+
+    function endDrag(e) {
+      if (!drag.active) return;
+      drag.active = false;
+      if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+      canvas.style.cursor = 'grab';
+    }
+
     canvas.addEventListener('wheel', handleWheel, { passive: false });
-    return () => canvas.removeEventListener('wheel', handleWheel);
+    canvas.addEventListener('pointerdown', handlePointerDown);
+    canvas.addEventListener('pointermove', handlePointerMove);
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
+    return () => {
+      canvas.removeEventListener('wheel', handleWheel);
+      canvas.removeEventListener('pointerdown', handlePointerDown);
+      canvas.removeEventListener('pointermove', handlePointerMove);
+      canvas.removeEventListener('pointerup', endDrag);
+      canvas.removeEventListener('pointercancel', endDrag);
+    };
   }, []);
 
   return (
     <div ref={containerRef} className="flex-1 min-h-0 bg-surface-container-low">
-      <canvas ref={canvasRef} className="block" />
+      <canvas ref={canvasRef} className="block cursor-grab" />
     </div>
   );
 }

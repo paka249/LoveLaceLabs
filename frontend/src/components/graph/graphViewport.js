@@ -85,3 +85,16 @@ export function zoomViewport(view, { deltaY, offsetX, offsetY, width, height }) 
 
   return { centerX, centerY, range: newRange };
 }
+
+// Pan the viewport by a pointer-drag delta (in screen pixels), so the world
+// content under the cursor tracks the drag 1:1 — dragging right/down slides
+// the graph right/down, like grabbing a piece of paper.
+export function panViewport(view, { dx, dy, width, height }) {
+  const { xHalf } = halfRanges(width, height, view.range);
+  const pixelsPerUnit = width / (2 * xHalf);
+  return {
+    centerX: view.centerX - dx / pixelsPerUnit,
+    centerY: view.centerY + dy / pixelsPerUnit,
+    range: view.range,
+  };
+}
