@@ -1,6 +1,27 @@
 import { useLayoutEffect, useRef } from 'react';
 import { serializeInput, deserializeToHtml, ZWSP } from './graphInputUtils';
 
+// Functions that get auto-closed parens when the user types '('.
+// Longer names must come first so endsWith matching doesn't hit a suffix early
+// (e.g. 'asin' must precede 'sin').
+const FN_NAMES = [
+  'log10', 'asin', 'acos', 'atan',
+  'sqrt', 'floor', 'ceil', 'abs',
+  'sin', 'cos', 'tan', 'log', 'ln',
+];
+
+// Functions whose text is replaced with a Unicode symbol in the editor.
+// The evaluator already handles √( → Math.sqrt( (see graphEvaluator REPLACEMENTS).
+const FN_VISUALS = { sqrt: '√' };
+
+// Functions that use bracket notation instead of parens: abs → |x|, floor → ⌊x⌋, ceil → ⌈x⌉.
+// When detected, the fn name + '(' is replaced with open+close and the cursor lands between them.
+const FN_BRACKETS = {
+  abs:   { open: '|',  close: '|'  },
+  floor: { open: '⌊', close: '⌋' },
+  ceil:  { open: '⌈', close: '⌉' },
+};
+
 // A collapsed caret placed inside a truly empty text node has no client rect in
 // most browsers, so native typing doesn't honor it — the next keystroke lands
 // wherever the caret last had a real box instead. Seeding the node with a
@@ -62,6 +83,32 @@ export default function GraphFunctionInput({
       e.preventDefault();
       onMoveDown?.();
       return;
+    }
+
+    // Skip over auto-inserted closing delimiters instead of inserting duplicates.
+    // ')' is the key users actually press to "finish" a call regardless of how
+    // it renders (sin( → ), abs( → |, floor( → ⌋, ceil( → ⌉), so it must match
+    // any of those glyphs, not just a literal ')'. The other glyphs still match
+    // themselves in case one is typed/pasted directly.
+    const CLOSING_CHARS = new Set([')', '|', '⌋', '⌉']);
+    if (CLOSING_CHARS.has(e.key)) {
+      const skipSel = window.getSelection();
+      if (skipSel && skipSel.rangeCount) {
+        const sr = skipSel.getRangeAt(0);
+        const aheadChar = sr.collapsed && sr.startContainer.nodeType === Node.TEXT_NODE
+          ? sr.startContainer.textContent[sr.startOffset]
+          : undefined;
+        const matches = e.key === ')' ? CLOSING_CHARS.has(aheadChar) : aheadChar === e.key;
+        if (matches) {
+          e.preventDefault();
+          const jump = document.createRange();
+          jump.setStart(sr.startContainer, sr.startOffset + 1);
+          jump.collapse(true);
+          skipSel.removeAllRanges();
+          skipSel.addRange(jump);
+          return;
+        }
+      }
     }
 
     if (e.key === 'ArrowUp') {
@@ -134,12 +181,16 @@ export default function GraphFunctionInput({
     // onKeyDown (before) because the Selection API is reliable here —
     // the cursor is positioned right after the '^' we want to replace.
     const sel = window.getSelection();
-    if (sel && sel.rangeCount && !isInsideSup(sel.anchorNode)) {
+    if (sel && sel.rangeCount) {
       const range = sel.getRangeAt(0);
       const container = range.startContainer;
       const offset = range.startOffset;
 
+      // Exponents don't nest (no live '^' promotion while already inside a
+      // sup), but function calls like x^abs(2) are common, so bracket-fn
+      // detection below must NOT be gated on the same check.
       if (
+        !isInsideSup(sel.anchorNode) &&
         container.nodeType === Node.TEXT_NODE &&
         container.parentNode &&
         offset > 0 &&
@@ -165,6 +216,55 @@ export default function GraphFunctionInput({
 
         onChange(serializeInput(el));
         return;
+      }
+
+      // Detect '(' typed right after a recognized function name → auto-close
+      // and optionally replace the name with its Unicode symbol (e.g. sqrt → √).
+      if (
+        offset > 0 &&
+        container.textContent[offset - 1] === '('
+      ) {
+        const textBefore = container.textContent.slice(0, offset - 1);
+        const matchedFn = FN_NAMES.find((fn) => {
+          if (!textBefore.endsWith(fn)) return false;
+          // Ensure the character before the function name is not a letter/underscore
+          // (prevents matching 'sin' inside 'mysin')
+          const charBefore = textBefore[textBefore.length - fn.length - 1];
+          return !charBefore || /[^a-zA-Z_]/.test(charBefore);
+        });
+
+        if (matchedFn) {
+          const prefixLen = textBefore.length - matchedFn.length;
+          const afterCursor = container.textContent.slice(offset);
+          const bracket = FN_BRACKETS[matchedFn];
+
+          if (bracket) {
+            // Bracket notation: replace fnName( with open+close, cursor between them
+            const { open, close } = bracket;
+            container.textContent =
+              textBefore.slice(0, prefixLen) + open + close + afterCursor;
+            const cursorAt = prefixLen + open.length;
+            const fr = document.createRange();
+            fr.setStart(container, cursorAt);
+            fr.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(fr);
+          } else {
+            // Paren notation: replace fnName with visual symbol, auto-close (), cursor inside
+            const visual = FN_VISUALS[matchedFn] ?? matchedFn;
+            container.textContent =
+              textBefore.slice(0, prefixLen) + visual + '()' + afterCursor;
+            const cursorAt = prefixLen + visual.length + 1;
+            const fr = document.createRange();
+            fr.setStart(container, cursorAt);
+            fr.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(fr);
+          }
+
+          onChange(serializeInput(el));
+          return;
+        }
       }
     }
 

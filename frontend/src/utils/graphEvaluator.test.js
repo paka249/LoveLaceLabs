@@ -118,4 +118,41 @@ describe('compileExpression', () => {
     expect(f(2)).toBeCloseTo(5);
     expect(f(0)).toBeCloseTo(1);
   });
+
+  it('supports abs(x) as text form', () => {
+    const f = compileExpression('abs(x)');
+    expect(f(-3)).toBeCloseTo(3);
+  });
+
+  it('supports |x| as visual bracket notation', () => {
+    const f = compileExpression('|x|');
+    expect(f(-3)).toBeCloseTo(3);
+  });
+
+  it('supports floor(x) and its ⌊x⌋ visual form', () => {
+    expect(compileExpression('floor(x)')(2.7)).toBeCloseTo(2);
+    expect(compileExpression('⌊x⌋')(2.7)).toBeCloseTo(2);
+  });
+
+  it('supports ceil(x) and its ⌈x⌉ visual form', () => {
+    expect(compileExpression('ceil(x)')(2.1)).toBeCloseTo(3);
+    expect(compileExpression('⌈x⌉')(2.1)).toBeCloseTo(3);
+  });
+
+  it('supports √( as the visual form of sqrt(', () => {
+    const f = compileExpression('√(x)');
+    expect(f(9)).toBeCloseTo(3);
+  });
+
+  // Regression: the text-form pattern (e.g. \babs\() must not re-match its own
+  // "Math.abs(" output when a visual-bracket pattern (e.g. |x|) ran first —
+  // that produced "Math.Math.abs(" and silently broke every visual function.
+  it('does not double-wrap visual bracket notation into Math.Math.xxx(', () => {
+    expect(() => compileExpression('|x|+⌊x⌋+⌈x⌉+√(x)')).not.toThrow();
+  });
+
+  it('handles a mix of text-form and visual-bracket notation in one expression', () => {
+    const f = compileExpression('abs(x)+|x|');
+    expect(f(-3)).toBeCloseTo(6);
+  });
 });

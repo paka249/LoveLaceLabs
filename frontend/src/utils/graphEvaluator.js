@@ -4,11 +4,19 @@ const REPLACEMENTS = [
   [/\bpi\b/gi, 'Math.PI'],
   [/π/g, 'Math.PI'],
   [/\be\b/g, 'Math.E'],
-  [/√\(/g, 'Math.sqrt('],
+  // Text-form function names must resolve before their Unicode/visual-bracket
+  // equivalents: each one expands to "Math.xxx(", which itself contains a
+  // word-boundary match for "xxx(" (e.g. "Math.abs(" contains "abs(" right
+  // after the "."). Running the visual pattern second would re-match that
+  // output and double-wrap it into "Math.Math.abs(".
   [/\bsqrt\(/g, 'Math.sqrt('],
-  [/\babs\(/g, 'Math.abs('],
   [/\bfloor\(/g, 'Math.floor('],
   [/\bceil\(/g, 'Math.ceil('],
+  [/\babs\(/g, 'Math.abs('],
+  [/√\(/g, 'Math.sqrt('],
+  [/⌊([^⌋]*)⌋/g, 'Math.floor($1)'],
+  [/⌈([^⌉]*)⌉/g, 'Math.ceil($1)'],
+  [/\|([^|]*)\|/g, 'Math.abs($1)'],
   [/\blog10\(/g, 'Math.log10('],
   [/\blog\(/g, 'Math.log10('],
   [/\bln\(/g, 'Math.log('],

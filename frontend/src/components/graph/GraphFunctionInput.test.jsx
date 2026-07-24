@@ -83,6 +83,94 @@ describe('GraphFunctionInput', () => {
     expect(onChange).toHaveBeenCalledWith('x^');
   });
 
+  it('promotes a typed "abs(" to bracket notation with the cursor between the bars', () => {
+    const onChange = vi.fn();
+    render(<GraphFunctionInput value="" onChange={onChange} placeholder="" isValid />);
+    const editor = screen.getByRole('textbox');
+
+    editor.focus();
+    editor.textContent = 'abs(';
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.setStart(editor.firstChild, 4);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    fireEvent.input(editor);
+
+    expect(editor.textContent).toBe('||');
+    expect(sel.anchorNode).toBe(editor.firstChild);
+    expect(sel.anchorOffset).toBe(1);
+    expect(onChange).toHaveBeenCalledWith('||');
+  });
+
+  it('typing the natural ")" skips over the auto-inserted closing bar instead of inserting a stray ")"', () => {
+    // Regression: the skip-over logic used to require the typed key to equal
+    // the character ahead, so ')' (what users actually press) never matched
+    // '|' (abs's auto-inserted closer) and a literal ')' got inserted instead
+    // — "abs(2)" ended up as "|2)|" with the caret stuck after the stray ')'.
+    render(<GraphFunctionInput value="" onChange={() => {}} placeholder="" isValid />);
+    const editor = screen.getByRole('textbox');
+
+    editor.focus();
+    editor.textContent = '|2|';
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.setStart(editor.firstChild, 2);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    const notCancelled = fireEvent.keyDown(editor, { key: ')' });
+
+    expect(notCancelled).toBe(false); // false means preventDefault() was called
+    expect(editor.textContent).toBe('|2|'); // no stray ')' inserted
+    expect(sel.anchorNode).toBe(editor.firstChild);
+    expect(sel.anchorOffset).toBe(3); // caret moved past the closing bar
+  });
+
+  it('still skips a literal ")" for plain function calls', () => {
+    render(<GraphFunctionInput value="" onChange={() => {}} placeholder="" isValid />);
+    const editor = screen.getByRole('textbox');
+
+    editor.focus();
+    editor.textContent = 'sin(2)';
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.setStart(editor.firstChild, 5);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    const notCancelled = fireEvent.keyDown(editor, { key: ')' });
+
+    expect(notCancelled).toBe(false);
+    expect(sel.anchorOffset).toBe(6);
+  });
+
+  it('promotes a typed function keyword to a bracket even while inside an exponent', () => {
+    // Regression: bracket-fn detection was nested inside the `!isInsideSup`
+    // guard meant only for the '^' promotion, so x^abs(2) left "abs(2)"
+    // as literal text inside the <sup> instead of promoting to |2|.
+    const onChange = vi.fn();
+    render(<GraphFunctionInput value="" onChange={onChange} placeholder="" isValid />);
+    const editor = screen.getByRole('textbox');
+
+    editor.innerHTML = 'x<sup>abs(</sup>';
+    const sup = editor.querySelector('sup');
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.setStart(sup.firstChild, 4);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    fireEvent.input(editor);
+
+    expect(sup.textContent).toBe('||');
+  });
+
   it('prevents Enter key from inserting a newline block', () => {
     render(<GraphFunctionInput value="" onChange={() => {}} placeholder="" isValid />);
     const editor = screen.getByRole('textbox');

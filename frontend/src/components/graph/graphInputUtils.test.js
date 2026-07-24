@@ -77,4 +77,40 @@ describe('deserializeToHtml', () => {
       expect(serializeInput(el)).toBe(expr);
     }
   });
+
+  it('shows abs(x) with visual bracket notation', () => {
+    expect(deserializeToHtml('abs(x)')).toBe('|x|');
+  });
+
+  it('shows sqrt(x) with a radical prefix', () => {
+    expect(deserializeToHtml('sqrt(x)')).toBe('√(x)');
+  });
+
+  it('shows floor(x) and ceil(x) with their bracket glyphs', () => {
+    expect(deserializeToHtml('floor(x)')).toBe('⌊x⌋');
+    expect(deserializeToHtml('ceil(x)')).toBe('⌈x⌉');
+  });
+
+  it('recursively parses an exponent nested inside a function call', () => {
+    expect(deserializeToHtml('abs(x^2)')).toBe('|x<sup>2</sup>|');
+  });
+
+  it('a simple (non-parenthesized) exponent stops before a paren, matching live-typing semantics', () => {
+    // "x^abs(2)" in keyword form isn't something live typing ever produces
+    // (live typing promotes "abs(" to "|" immediately, before "^" ever sees
+    // it), so this documents the existing simple-exponent boundary rather
+    // than claiming function calls nest inside a bare (unparenthesized) '^'.
+    expect(deserializeToHtml('x^abs(2)')).toBe('x<sup>abs</sup>(2)');
+  });
+
+  it('round-trips the glyph form a live-typed nested function-in-exponent actually produces', () => {
+    // Typing "x^abs(2)" live promotes "abs(" to "|" while already inside the
+    // sup, so the stored value is "x^|2|" (glyph form), not "x^abs(2)". That
+    // must still reproduce the same nested <sup> on reload.
+    expect(deserializeToHtml('x^|2|')).toBe('x<sup>|2|</sup>');
+  });
+
+  it('does not treat a function name inside a longer identifier as a match', () => {
+    expect(deserializeToHtml('myabs(x)')).toBe('myabs(x)');
+  });
 });
