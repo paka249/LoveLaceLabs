@@ -57,4 +57,28 @@ describe('GraphCanvas', () => {
       render(<GraphCanvas functions={[{ id: '1', expression: 'x +* 2', color: '#5af0b3' }]} />)
     ).not.toThrow();
   });
+
+  it('does not stroke a curve for a function marked not visible', () => {
+    // The grid/axes alone already call stroke() many times, so compare against
+    // that baseline rather than asserting stroke/lineTo were never called.
+    render(<GraphCanvas functions={[]} />);
+    const baselineStrokes = fakeContext.stroke.mock.calls.length;
+    cleanup();
+
+    fakeContext = createFakeContext();
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => fakeContext);
+    render(<GraphCanvas functions={[{ id: '1', expression: 'x', color: '#5af0b3', visible: false }]} />);
+    expect(fakeContext.stroke.mock.calls.length).toBe(baselineStrokes);
+  });
+
+  it('still strokes a curve when visible is left undefined (default-on for legacy data)', () => {
+    render(<GraphCanvas functions={[]} />);
+    const baselineStrokes = fakeContext.stroke.mock.calls.length;
+    cleanup();
+
+    fakeContext = createFakeContext();
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => fakeContext);
+    render(<GraphCanvas functions={[{ id: '1', expression: 'x', color: '#5af0b3' }]} />);
+    expect(fakeContext.stroke.mock.calls.length).toBe(baselineStrokes + 1);
+  });
 });

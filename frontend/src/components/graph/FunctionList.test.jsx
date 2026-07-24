@@ -65,4 +65,40 @@ describe('FunctionList', () => {
     expect(onChange).toHaveBeenCalledOnce();
     expect(onChange.mock.calls[0][0][0].color).toBe('#ff0000');
   });
+
+  it('creates functions as visible by default', () => {
+    expect(createFunction(0).visible).toBe(true);
+  });
+
+  it('toggles a function to hidden when its visibility switch is clicked', () => {
+    const onChange = vi.fn();
+    const fns = [createFunction(0)];
+    render(<FunctionList functions={fns} onChange={onChange} />);
+    fireEvent.click(screen.getByLabelText(`Toggle visibility for function ${fns[0].id}`));
+    expect(onChange).toHaveBeenCalledWith([{ ...fns[0], visible: false }]);
+  });
+
+  it('toggles a hidden function back to visible when clicked again', () => {
+    const onChange = vi.fn();
+    const fns = [{ ...createFunction(0), visible: false }];
+    render(<FunctionList functions={fns} onChange={onChange} />);
+    fireEvent.click(screen.getByLabelText(`Toggle visibility for function ${fns[0].id}`));
+    expect(onChange).toHaveBeenCalledWith([{ ...fns[0], visible: true }]);
+  });
+
+  it('treats a function with no visible field as visible (legacy data)', () => {
+    const onChange = vi.fn();
+    const fns = [{ id: 'fn-legacy', expression: 'x', color: '#5af0b3' }];
+    render(<FunctionList functions={fns} onChange={onChange} />);
+    expect(screen.getByLabelText('Toggle visibility for function fn-legacy')).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+  });
+
+  it('dims the row for a hidden function', () => {
+    const fns = [{ ...createFunction(0), visible: false }];
+    render(<FunctionList functions={fns} onChange={() => {}} />);
+    expect(screen.getByRole('textbox').closest('div.flex').className).toMatch(/opacity-40/);
+  });
 });

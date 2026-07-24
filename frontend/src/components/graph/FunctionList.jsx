@@ -24,6 +24,7 @@ export function createFunction(index = 0) {
     id: generateId(),
     expression: '',
     color: COLOR_PALETTE[index % COLOR_PALETTE.length],
+    visible: true,
   };
 }
 
@@ -63,16 +64,36 @@ export default function FunctionList({ functions, onChange }) {
     onChange(functions.map((fn) => (fn.id === id ? { ...fn, color } : fn)));
   }
 
+  function handleToggleVisible(id) {
+    // `!== false` (not a plain truthy check) so functions created before this
+    // field existed still default to visible.
+    onChange(functions.map((fn) => (fn.id === id ? { ...fn, visible: fn.visible === false } : fn)));
+  }
+
   function handleRemove(id) {
     onChange(functions.filter((fn) => fn.id !== id));
   }
 
   return (
     <div className="flex flex-col gap-2 p-4 overflow-y-auto h-full">
-      {functions.map((fn, idx) => (
-        <div key={fn.id} className="flex items-center gap-2">
+      {functions.map((fn, idx) => {
+        const visible = fn.visible !== false;
+        return (
+        <div key={fn.id} className={`flex items-center gap-2 ${visible ? '' : 'opacity-40'}`}>
+          <button
+            type="button"
+            onClick={() => handleToggleVisible(fn.id)}
+            title={visible ? 'Hide function' : 'Show function'}
+            aria-pressed={visible}
+            aria-label={`Toggle visibility for function ${fn.id}`}
+            // Square (vs. the round color swatch next to it) so the two controls
+            // are unmistakably different at a glance, not just on/off states of
+            // the same shape.
+            className="w-3 h-3 rounded-[2px] shrink-0 cursor-pointer border-2"
+            style={{ backgroundColor: visible ? fn.color : 'transparent', borderColor: fn.color }}
+          />
           <label
-            className="w-3 h-3 rounded-full shrink-0 cursor-pointer block"
+            className="w-3 h-3 rounded-full shrink-0 cursor-pointer block border border-outline/30"
             style={{ backgroundColor: fn.color }}
             aria-label={`Change color for function ${fn.id}`}
           >
@@ -115,7 +136,8 @@ export default function FunctionList({ functions, onChange }) {
             ×
           </button>
         </div>
-      ))}
+        );
+      })}
       <button
         type="button"
         onClick={handleAdd}

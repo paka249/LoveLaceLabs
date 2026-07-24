@@ -90,6 +90,7 @@ export default function GraphCanvas({ functions }) {
       }
 
       functions.forEach((fn) => {
+        if (fn.visible === false) return;
         if (!fn.expression.trim()) return;
         let evaluate;
         try {
