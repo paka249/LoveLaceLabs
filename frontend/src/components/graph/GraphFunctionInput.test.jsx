@@ -171,6 +171,38 @@ describe('GraphFunctionInput', () => {
     expect(sup.textContent).toBe('||');
   });
 
+  it('typing "," while inside an exponent exits it and still types the comma as normal text', () => {
+    // Regression: only Space/ArrowRight/bracket-close exited a live exponent;
+    // a comma (needed for the "x^2, 1<x<5" range syntax) just got absorbed
+    // into the raised content instead, e.g. "x^2," all rendering superscript.
+    // jsdom has no document.execCommand at all, so stub it for this test.
+    const execCommandSpy = vi.fn();
+    document.execCommand = execCommandSpy;
+
+    const onChange = vi.fn();
+    render(<GraphFunctionInput value="" onChange={onChange} placeholder="" isValid />);
+    const editor = screen.getByRole('textbox');
+
+    editor.innerHTML = 'x<sup>2</sup>';
+    const sup = editor.querySelector('sup');
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.setStart(sup.firstChild, 1);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    fireEvent.keyDown(editor, { key: ',' });
+
+    // Caret left the sup's text node (exited the exponent)...
+    expect(sel.anchorNode).not.toBe(sup.firstChild);
+    // ...and the comma itself still gets typed, unlike a bare Space exit.
+    expect(execCommandSpy).toHaveBeenCalledWith('insertText', false, ',');
+    expect(onChange).toHaveBeenCalled();
+
+    delete document.execCommand;
+  });
+
   it('prevents Enter key from inserting a newline block', () => {
     render(<GraphFunctionInput value="" onChange={() => {}} placeholder="" isValid />);
     const editor = screen.getByRole('textbox');

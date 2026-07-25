@@ -142,6 +142,18 @@ export default function GraphFunctionInput({
       return;
     }
 
+    // Unlike Space/ArrowRight (pure "exit" keys, nothing inserted), a comma
+    // is meaningful content in its own right (e.g. the "x^2, 1<x<5" range
+    // syntax) — it must exit the exponent AND still get typed, as a normal
+    // (non-raised) character right after it.
+    if (e.key === ',' && supEl) {
+      e.preventDefault();
+      exitSup(supEl);
+      document.execCommand('insertText', false, ',');
+      onChange(serializeInput(editorRef.current));
+      return;
+    }
+
     if (e.key === 'ArrowRight' && supEl) {
       const offset = sel.anchorOffset;
       const len = sel.anchorNode?.textContent?.length ?? 0;
